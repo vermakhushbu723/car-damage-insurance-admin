@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { ALL_NAV_ITEMS } from '../constants/navigation';
 import RequireAuth from '../auth/RequireAuth';
 import AppLayout from '../components/layout/AppLayout';
 import LoginPage from '../pages/auth/LoginPage';
@@ -14,10 +13,21 @@ import UserActivationPage from '../pages/users/UserActivationPage';
 import BranchesPage from '../pages/service/BranchesPage';
 import DocumentTemplatesPage from '../pages/service/DocumentTemplatesPage';
 import CommunicationSetupPage from '../pages/service/CommunicationSetupPage';
-import ComingSoonPage from '../pages/ComingSoonPage';
+import ClaimFlowPage from '../pages/claims/ClaimFlowPage';
+import ApprovalLogicPage from '../pages/claims/ApprovalLogicPage';
+import RecommendationEnginePage from '../pages/claims/RecommendationEnginePage';
+import AllocationLoadPage from '../pages/claims/AllocationLoadPage';
+import FraudRoutingPage from '../pages/fraud/FraudRoutingPage';
+import FraudTriggerRulesPage from '../pages/fraud/FraudTriggerRulesPage';
+import TriggerHistoryPage from '../pages/fraud/TriggerHistoryPage';
+import ClaimReportPage from '../pages/reports/ClaimReportPage';
+import UserReportPage from '../pages/reports/UserReportPage';
+import SaasUsagePage from '../pages/reports/SaasUsagePage';
+import DataDownloadPage from '../pages/reports/DataDownloadPage';
+import AuditLogsPage from '../pages/system/AuditLogsPage';
+import SystemSettingsPage from '../pages/system/SystemSettingsPage';
 
-// Screens built from the designs so far; every other sidebar item routes
-// to a "coming soon" page until its design arrives.
+// One page per sidebar item (constants/navigation.js).
 const PAGES = {
     [ROUTES.DASHBOARD]: DashboardPage,
     [ROUTES.ACTIVE_USERS]: ActiveUsersPage,
@@ -28,6 +38,19 @@ const PAGES = {
     [ROUTES.BRANCHES]: BranchesPage,
     [ROUTES.DOCUMENT_TEMPLATES]: DocumentTemplatesPage,
     [ROUTES.COMMUNICATION]: CommunicationSetupPage,
+    [ROUTES.CLAIM_FLOW]: ClaimFlowPage,
+    [ROUTES.APPROVAL_LOGIC]: ApprovalLogicPage,
+    [ROUTES.RECOMMENDATION_ENGINE]: RecommendationEnginePage,
+    [ROUTES.ALLOCATION_LOAD]: AllocationLoadPage,
+    [ROUTES.FRAUD_ROUTING]: FraudRoutingPage,
+    [ROUTES.FRAUD_TRIGGER_RULES]: FraudTriggerRulesPage,
+    [ROUTES.TRIGGER_HISTORY]: TriggerHistoryPage,
+    [ROUTES.CLAIM_REPORT]: ClaimReportPage,
+    [ROUTES.USER_REPORT]: UserReportPage,
+    [ROUTES.SAAS_USAGE]: SaasUsagePage,
+    [ROUTES.DATA_DOWNLOAD]: DataDownloadPage,
+    [ROUTES.AUDIT_LOGS]: AuditLogsPage,
+    [ROUTES.SYSTEM_SETTINGS]: SystemSettingsPage,
 };
 
 const AppRoutes = () => (
@@ -35,10 +58,7 @@ const AppRoutes = () => (
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-            {ALL_NAV_ITEMS.map((item) => {
-                const Page = PAGES[item.path];
-                return <Route key={item.key} path={item.path} element={Page ? <Page /> : <ComingSoonPage item={item} />} />;
-            })}
+            {Object.entries(PAGES).map(([path, Page]) => <Route key={path} path={path} element={<Page />} />)}
         </Route>
         <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
     </Routes>

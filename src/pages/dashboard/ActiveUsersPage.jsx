@@ -70,7 +70,7 @@ const ActiveUsersPage = () => {
                                 <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
                                 <YAxis type="category" dataKey="name" width={170} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#0F172A' }} />
                                 <Tooltip cursor={{ fill: 'rgba(11,76,208,0.05)' }} />
-                                <Bar dataKey="value" barSize={30} name="Users">
+                                <Bar isAnimationActive={false} dataKey="value" barSize={30} name="Users">
                                     {data.map((d, i) => <Cell key={d.name} fill={BAR_COLORS[i]} />)}
                                     <LabelList dataKey="value" position="right" style={{ fontSize: 11, fill: '#0F172A' }} />
                                 </Bar>

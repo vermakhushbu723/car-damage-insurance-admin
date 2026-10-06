@@ -123,3 +123,8 @@ body {
 .page-tabs .ant-tabs-nav {
     margin-bottom: 10px !important;
 }
+/* Tailwind w-full must beat antd's fixed widths on number inputs / pickers. */
+.ant-input-number.w-full,
+.ant-picker.w-full {
+    width: 100% !important;
+}

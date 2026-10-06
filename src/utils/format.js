@@ -24,15 +24,25 @@ export const matchesQuery = (row, query, fields) => {
     return fields.some((f) => String(typeof f === 'function' ? f(row) : row[f] ?? '').toLowerCase().includes(q));
 };
 
-/** Build a CSV from rows + [{ title, value(row) }] columns and trigger a browser download. */
-export function downloadCsv(fileName, rows, columns) {
+/** Rows + [{ title, value(row) }] columns -> delimited text (CSV by default, tab for Excel). */
+export function toDelimited(rows, columns, sep = ',') {
     const escape = (v) => {
         const s = String(v ?? '');
-        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        return /[",\n\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const header = columns.map((c) => escape(c.title)).join(',');
-    const body = rows.map((r) => columns.map((c) => escape(c.value(r))).join(',')).join('\n');
-    const blob = new Blob([`${header}\n${body}`], { type: 'text/csv;charset=utf-8' });
+    const header = columns.map((c) => escape(c.title)).join(sep);
+    const body = rows.map((r) => columns.map((c) => escape(c.value(r))).join(sep)).join('\n');
+    return `${header}\n${body}`;
+}
+
+/** Build a CSV from rows + [{ title, value(row) }] columns and trigger a browser download. */
+export function downloadCsv(fileName, rows, columns) {
+    return downloadFile(fileName, toDelimited(rows, columns), 'text/csv;charset=utf-8');
+}
+
+/** Triggers a browser download of `content`; returns the file size in bytes. */
+export function downloadFile(fileName, content, mime) {
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -41,7 +51,11 @@ export function downloadCsv(fileName, rows, columns) {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    return blob.size;
 }
+
+/** "4.2 MB" / "18 KB" */
+export const formatSize = (kb) => (kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`);
 
 const PW_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 /** Temp password with at least one upper, lower, digit and symbol. */

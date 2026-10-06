@@ -7,7 +7,7 @@ import { COLORS, TONES } from '../../constants/theme';
  * "↑ 12% VS Last Month" trend line. `onClick` makes the whole tile a
  * filter shortcut (list pages use it to filter the table by that status).
  */
-const StatCard = ({ label, value, icon, tone = 'blue', trend, trendLabel = 'VS Last Month', trendDown = false, onClick, active = false }) => {
+const StatCard = ({ label, value, icon, tone = 'blue', trend, trendLabel = 'VS Last Month', trendDown = false, onClick, active = false, footer }) => {
     const t = TONES[tone] ?? TONES.blue;
     const Tag = onClick ? 'button' : 'div';
     return (
@@ -39,6 +39,7 @@ const StatCard = ({ label, value, icon, tone = 'blue', trend, trendLabel = 'VS L
                     {trendLabel}
                 </span>
             )}
+            {footer}
         </Tag>
     );
 };

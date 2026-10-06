@@ -8,6 +8,7 @@ import { COLORS, CHANNEL_STYLES } from '../../constants/theme';
 import { COMM_STAGES, COMM_CHANNELS, COMM_RECIPIENTS, SEND_TIMINGS, REMINDER_OPTIONS } from '../../data/seed';
 import { useCollection, useLogChange, newId } from '../../store/AdminStore';
 import { downloadCsv, formatDate, formatNumber, matchesQuery } from '../../utils/format';
+import dayjs from 'dayjs';
 
 const toOptions = (arr) => arr.map((v) => ({ value: v, label: v }));
 
@@ -99,6 +100,8 @@ const CommunicationSetupPage = () => {
     const rulesCol = useCollection('commRules');
     const templatesCol = useCollection('commTemplates');
     const channelsCol = useCollection('channels');
+    const logsCol = useCollection('commLogs');
+    const [viewLog, setViewLog] = useState(null);
     const logChange = useLogChange();
     const rules = rulesCol.items;
     const templates = templatesCol.items;
@@ -169,6 +172,37 @@ const CommunicationSetupPage = () => {
         channelsCol.update(c.id, { enabled });
         logChange('Communication Setup', `${c.name} channel`, c.enabled ? 'ON' : 'OFF', enabled ? 'ON' : 'OFF');
     };
+
+    // Retry a failed message: the channel must be switched on; delivery counts toward Sent Today.
+    const retry = (log) => {
+        const ch = channels.find((c) => c.name === log.channel);
+        if (!ch?.enabled) {
+            message.error(`${log.channel} channel is switched off — enable it under Channels first.`);
+            return;
+        }
+        logsCol.update(log.id, { status: 'Delivered', at: new Date().toISOString() });
+        channelsCol.update(ch.id, { sentToday: ch.sentToday + 1 });
+        logChange('Communication Setup', `Retry ${log.claim} · ${log.channel}`, 'Failed', 'Delivered');
+        message.success(`${log.communication} re-sent to ${log.recipient} via ${log.channel}`);
+    };
+
+    const logColumns = [
+        { title: 'Date/Time', dataIndex: 'at', render: (d) => dayjs(d).format('DD MMM YYYY HH:mm') },
+        { title: 'Claim', dataIndex: 'claim' },
+        { title: 'Communication', dataIndex: 'communication' },
+        { title: 'Recipient', dataIndex: 'recipient' },
+        { title: 'Channel', dataIndex: 'channel', render: (c) => <ChannelPill name={c} />, align: 'center' },
+        { title: 'Status', dataIndex: 'status', render: (s) => <StatusTag status={s} minWidth={80} />, align: 'center' },
+        {
+            title: 'Action',
+            align: 'center',
+            render: (_, l) => (
+                <button type="button" onClick={() => (l.status === 'Failed' ? retry(l) : setViewLog(l))} className="rounded px-3 py-0.5 text-[12px]" style={{ background: COLORS.primarySoft, color: COLORS.primary, minWidth: 70 }}>
+                    {l.status === 'Failed' ? 'Retry' : 'View'}
+                </button>
+            ),
+        },
+    ];
 
     const sendTest = (c) => {
         channelsCol.update(c.id, { sentToday: c.sentToday + 1 });
@@ -255,6 +289,7 @@ const CommunicationSetupPage = () => {
                     { key: 'matrix', label: <span className="text-[13px]">Stage Wise Matrix</span> },
                     { key: 'templates', label: <span className="text-[13px]">Templates</span> },
                     { key: 'channels', label: <span className="text-[13px]">Channels</span> },
+                    { key: 'logs', label: <span className="text-[13px]">Communication Logs</span> },
                 ]}
             />
 
@@ -285,6 +320,21 @@ const CommunicationSetupPage = () => {
                     scrollX={900}
                 />
             )}
+
+            {tab === 'logs' && (
+                <DataTable className="table-blue-head" title={<span style={{ color: COLORS.primary }}>Communication Logs</span>} columns={logColumns} dataSource={logsCol.items} pageSize={10} scrollX={950} />
+            )}
+
+            <Modal open={!!viewLog} title={viewLog && `${viewLog.claim} · ${viewLog.communication}`} onCancel={() => setViewLog(null)} footer={null}>
+                {viewLog && (
+                    <div className="text-[12.5px] flex flex-col gap-1.5">
+                        <div><b>Recipient:</b> {viewLog.recipient}</div>
+                        <div><b>Channel:</b> {viewLog.channel} · <b>Status:</b> {viewLog.status}</div>
+                        <div><b>Sent:</b> {dayjs(viewLog.at).format('DD MMM YYYY, hh:mm A')}</div>
+                        <div className="rounded p-3 mt-1" style={{ background: COLORS.bgField }}>{viewLog.message}</div>
+                    </div>
+                )}
+            </Modal>
 
             {tab === 'channels' && (
                 <DataTable className="table-blue-head" title="Delivery Channels" columns={channelColumns} dataSource={channels} pagination={false} scrollX={900} />

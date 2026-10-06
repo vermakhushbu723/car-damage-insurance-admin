@@ -60,8 +60,28 @@ export const STATUS_STYLES = {
     'High Load': { bg: '#FDEBD3', color: '#F59E0B' },
     Normal: { bg: '#D1EEDD', color: '#1E8E4E' },
     Critical: { bg: '#F6CDCD', color: '#C81E1E' },
-    Open: { bg: '#FDEBC8', color: '#E89A0C' },
+    Open: { bg: '#C9D8F8', color: '#0B4CD0' },
     Closed: { bg: '#E2E8F0', color: '#64748B' },
+    High: { bg: '#F6CDCD', color: '#C81E1E' },
+    Medium: { bg: '#FDEBC8', color: '#E89A0C' },
+    Low: { bg: '#E2E8F0', color: '#64748B' },
+    'Under review': { bg: '#FDEBC8', color: '#E89A0C' },
+    Escalated: { bg: '#F6CDCD', color: '#C81E1E' },
+    Cleared: { bg: '#D1EEDD', color: '#1E8E4E' },
+    Delivered: { bg: '#D1EEDD', color: '#1E8E4E' },
+    Published: { bg: '#D1EEDD', color: '#1E8E4E' },
+    Draft: { bg: '#FDEBC8', color: '#E89A0C' },
+    Intimation: { bg: '#E0F2FE', color: '#0284C7' },
+    Audit: { bg: '#F6CDCD', color: '#C81E1E' },
+    'Handler review': { bg: '#F6CDCD', color: '#C81E1E' },
+};
+
+// Severity chips (fraud rules / approval logic cards).
+export const SEVERITY_STYLES = {
+    Low: { bg: '#E2E8F0', color: '#64748B' },
+    Medium: { bg: '#FDEBC8', color: '#E89A0C' },
+    High: { bg: '#FBE0C3', color: '#F59E0B' },
+    Critical: { bg: '#FBE0C3', color: '#F59E0B' },
 };
 
 // Communication channel pills (Stage-wise Communication Matrix).

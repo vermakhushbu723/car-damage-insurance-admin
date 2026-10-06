@@ -4,6 +4,11 @@ import {
     SEED_CHANNELS, SEED_CONFIG, SEED_CHANGES,
 } from '../data/seed';
 import { SEED_ROLES } from '../data/roles';
+import {
+    SEED_CLAIMS, SEED_FRAUD_RULES, SEED_TRIGGERS, SEED_ROUTING, SEED_RECOMMENDATION, SEED_AUTHORITY, SEED_APPROVAL_HISTORY,
+    SEED_STAGE_CONFIG, SEED_INTEGRATIONS, SEED_SYSTEM_UPDATE, SEED_COMPLIANCE, SEED_COMPLIANCE_LOG, SEED_AUDIT_EVENTS,
+    SEED_DOWNLOADS, SEED_COMM_LOGS,
+} from '../data/modules';
 import { getSession } from '../auth/session';
 
 /**
@@ -24,13 +29,37 @@ const buildSeed = () => ({
     channels: SEED_CHANNELS,
     config: SEED_CONFIG,
     changes: SEED_CHANGES,
+    claims: SEED_CLAIMS,
+    fraudRules: SEED_FRAUD_RULES,
+    triggers: SEED_TRIGGERS,
+    routing: SEED_ROUTING,
+    recommendation: SEED_RECOMMENDATION,
+    authorityMatrix: SEED_AUTHORITY,
+    approvalHistory: SEED_APPROVAL_HISTORY,
+    stageConfig: SEED_STAGE_CONFIG,
+    integrations: SEED_INTEGRATIONS,
+    systemUpdate: SEED_SYSTEM_UPDATE,
+    compliance: SEED_COMPLIANCE,
+    complianceLog: SEED_COMPLIANCE_LOG,
+    auditEvents: SEED_AUDIT_EVENTS,
+    downloads: SEED_DOWNLOADS,
+    commLogs: SEED_COMM_LOGS,
 });
+
+// Fields added to a seeded item later (matched by id) are filled in from the seed.
+const mergeById = (seedList, savedList) => savedList.map((s) => ({ ...seedList.find((x) => x.id === s.id), ...s }));
 
 const load = () => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        // Keys added in later versions fall back to the seed.
-        if (raw) return { ...buildSeed(), ...JSON.parse(raw) };
+        if (raw) {
+            const seed = buildSeed();
+            const saved = JSON.parse(raw);
+            // Keys added in later versions fall back to the seed.
+            const merged = { ...seed, ...saved };
+            merged.config = { ...seed.config, ...saved.config, approvalRules: mergeById(seed.config.approvalRules, saved.config?.approvalRules ?? seed.config.approvalRules) };
+            return merged;
+        }
     } catch {
         /* corrupt / blocked storage -- start from the seed */
     }

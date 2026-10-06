@@ -25,31 +25,30 @@ import {
 import { ROUTES } from './routes';
 
 // Sidebar, grouped exactly as the reference design's section headings
-// (labels keep the design's own spelling). `ready: false` = screen not
-// designed yet -- the route shows a "coming soon" placeholder.
+// (labels keep the design's own spelling).
 export const SIDEBAR_GROUPS = [
     {
         title: 'MAIN',
         items: [
-            { key: 'dashboard', label: 'Dashboard', icon: AppstoreOutlined, path: ROUTES.DASHBOARD, ready: true },
-            { key: 'active-users', label: 'Active Users', icon: TeamOutlined, path: ROUTES.ACTIVE_USERS, ready: true },
+            { key: 'dashboard', label: 'Dashboard', icon: AppstoreOutlined, path: ROUTES.DASHBOARD },
+            { key: 'active-users', label: 'Active Users', icon: TeamOutlined, path: ROUTES.ACTIVE_USERS },
         ],
     },
     {
         title: 'USER MANAGEMENT',
         items: [
-            { key: 'create-users', label: 'Create Users', icon: UserOutlined, path: ROUTES.CREATE_USERS, ready: true },
-            { key: 'roles', label: 'Roles & Permissions', icon: SafetyOutlined, path: ROUTES.ROLES, ready: true },
-            { key: 'password-reset', label: 'Password Reset', icon: LockOutlined, path: ROUTES.PASSWORD_RESET, ready: true },
-            { key: 'user-activation', label: 'User Activation', icon: UserAddOutlined, path: ROUTES.USER_ACTIVATION, ready: true },
+            { key: 'create-users', label: 'Create Users', icon: UserOutlined, path: ROUTES.CREATE_USERS },
+            { key: 'roles', label: 'Roles & Permissions', icon: SafetyOutlined, path: ROUTES.ROLES },
+            { key: 'password-reset', label: 'Password Reset', icon: LockOutlined, path: ROUTES.PASSWORD_RESET },
+            { key: 'user-activation', label: 'User Activation', icon: UserAddOutlined, path: ROUTES.USER_ACTIVATION },
         ],
     },
     {
         title: 'SERVICE CONFIGURATION',
         items: [
-            { key: 'branches', label: 'Branches/Offices', icon: EnvironmentOutlined, path: ROUTES.BRANCHES, ready: true },
-            { key: 'document-templates', label: 'Document Templates', icon: FileTextOutlined, path: ROUTES.DOCUMENT_TEMPLATES, ready: true },
-            { key: 'communication', label: 'Communication Seup', icon: MessageOutlined, path: ROUTES.COMMUNICATION, ready: true },
+            { key: 'branches', label: 'Branches/Offices', icon: EnvironmentOutlined, path: ROUTES.BRANCHES },
+            { key: 'document-templates', label: 'Document Templates', icon: FileTextOutlined, path: ROUTES.DOCUMENT_TEMPLATES },
+            { key: 'communication', label: 'Communication Seup', icon: MessageOutlined, path: ROUTES.COMMUNICATION },
         ],
     },
     {

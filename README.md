@@ -10,28 +10,26 @@ npm run dev
 **Login:** `superadmin@ibima.com` (or `9876543210`) / `Admin@123` + captcha.
 
 ## Data
-No backend yet. All data is seeded from `src/data/seed.js` + `src/data/roles.js` and saved in the
-browser's localStorage (`src/store/AdminStore.jsx`). Sidebar profile menu → **Reset sample data** restores it.
+No backend yet. All data is seeded from `src/data/seed.js`, `src/data/roles.js` and `src/data/modules.js`
+and saved in the browser's localStorage (`src/store/AdminStore.jsx`).
+Sidebar profile menu → **Reset sample data** restores it.
 
-## Screens built
-| Menu | Route |
+## Screens (every sidebar item)
+| Group | Screens |
 |---|---|
-| Dashboard | `/dashboard` |
-| Active Users | `/active-users` |
-| Create Users (role-specific form, Modify user, Add Role) | `/users/create` (`?role=<key>`, `?edit=<userId>`) |
-| Roles & Permissions | `/roles-permissions` |
-| Password Reset | `/password-reset` |
-| User Activation | `/user-activation` |
-| Branches/Offices | `/branches` |
-| Document Templates | `/document-templates` |
-| Communication Setup | `/communication-setup` |
-
-Every other sidebar item routes to a "coming soon" page until its design is shared
-(add the page in `src/routes/AppRoutes.jsx` → `PAGES`).
+| Main | Dashboard, Active Users |
+| User Management | Create Users (role-specific form, Modify user, Add Role), Roles & Permissions, Password Reset, User Activation |
+| Service Configuration | Branches/Offices, Document Templates, Communication Setup (Stage Wise Matrix / Templates / Channels / Communication Logs) |
+| Claim Configuration | Claim Flow (journey + stage TAT/rules/comm triggers), Approval Logic (Logic Matrix / Authority Matrix / History), Recommendation Engine, Allocation Load |
+| Fraud & Controls | Fraud Routing, Fraud Trigger Rules (with simulator), Trigger History |
+| Reports & Analytics | Claim Report, User Report, SaaS Usage Report, Data Download |
+| System | Audit Logs, System Settings (API Integration / System Update / Audit & Compliance) |
 
 ## How pages connect (for testing)
-- Create a user → shows in User Activation, Password Reset, Roles "Users In Role", dashboard counts / handler load.
-- User Activation status change → Active Users count + role bars update.
-- Roles & Permissions "Add User" → Create Users with that role preselected; "Add Role" in Create Users adds a new role tab.
-- Branches → "Assigned Branch" for CSM/Handler and "Used By N Branches" on templates.
-- Every config change (toggles, journey save, permissions, status, resets) → Recent Configuration Changes + bell.
+- Create / activate users → User Activation, Password Reset, Roles "Users In Role", Dashboard, Active Users, User Report.
+- Approval Logic rules = Dashboard's Approval Logic Matrix; edits stay **Draft** until "Publish changers" → History tab.
+- Fraud rules / triggers → Dashboard Fraud Summary, Fraud Routing cards + Open Trigger Queue; Trigger History status changes update both.
+- Allocation Load "Reasigned" moves open claims between handlers → Dashboard handler load + Claim Report.
+- Claim Journey (Dashboard) is the same component/config on Claim Flow.
+- Every change (toggles, saves, publishes, resets, exports, retries) → Recent Configuration Changes, the bell, and **Audit Logs**.
+- Data Download builds real CSV / Excel / JSON files from the stored data.

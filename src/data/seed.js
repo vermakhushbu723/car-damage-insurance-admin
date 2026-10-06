@@ -253,10 +253,11 @@ export const SEED_CONFIG = {
         },
     },
     approvalRules: [
-        { id: 'AR-1', name: 'ILA Approval Treshold', desc: 'Assessment amount ≤ configured threshold', enabled: false },
-        { id: 'AR-2', name: 'FLA Exception Check', desc: 'Exception count = 0 AND survey complete', enabled: false },
-        { id: 'AR-3', name: 'Payment Amount Rule', desc: 'Amount within authority matrix', enabled: false },
-        { id: 'AR-4', name: 'Fraud Trigger Hold', desc: 'Critical fraud trigger = true', enabled: false },
+        // `name`/`desc` = Dashboard wording; `title`, stage, condition, action = Approval Logic page.
+        { id: 'AR-1', name: 'ILA Approval Treshold', desc: 'Assessment amount ≤ configured threshold', enabled: true, severity: 'High', title: 'ILA Amount Threshold', stage: 'ILA Approval', condition: 'Amount Configured Threshold', action: 'Auto Approve', threshold: 50000 },
+        { id: 'AR-2', name: 'FLA Exception Check', desc: 'Exception count = 0 AND survey complete', enabled: true, severity: 'High', title: 'FLA Expectation check', stage: 'FLA Approval', condition: 'Exception count = 0 and survey complete', action: 'Auto Approve' },
+        { id: 'AR-3', name: 'Payment Amount Rule', desc: 'Amount within authority matrix', enabled: true, severity: 'Critical', title: 'Payment amount rule', stage: 'Payment Approval', condition: 'Amount within authority matrix', action: 'Route to authority', threshold: 200000 },
+        { id: 'AR-4', name: 'Fraud Trigger Hold', desc: 'Critical fraud trigger = true', enabled: true, severity: 'Critical', title: 'Trigger hold', stage: 'All Approval', condition: 'Critical fraud = true', action: 'Hold and escalate' },
     ],
     approvalMatrix: [
         { id: 'AM-1', approval: 'FLA Approval', logic: 'Amount Based + Rule Engine', enabled: true },

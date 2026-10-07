@@ -27,7 +27,7 @@ const AuditLogsPage = () => {
 
     const events = useMemo(() => [
         ...changes.map((c) => ({
-            id: c.id, at: c.changedOn, user: c.changedBy, role: 'Super Admin', update: c.change, reference: c.module === 'Password Reset' ? 'Password Reset' : c.oldValue === '—' ? 'Created' : 'Updated',
+            id: c.id, at: c.changedOn, user: c.changedBy, role: 'Admin', update: c.change, reference: c.module === 'Password Reset' ? 'Password Reset' : c.oldValue === '—' ? 'Created' : 'Updated',
             device: '192.168.1.45 / Windows', module: c.module, status: 'Success', detail: `${c.oldValue} → ${c.newValue}`,
         })),
         ...auditEvents,

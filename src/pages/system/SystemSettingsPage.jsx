@@ -53,7 +53,7 @@ const SystemSettingsPage = () => {
     const [checking, setChecking] = useState(false);
     const [form] = Form.useForm();
 
-    const user = getSession()?.name ?? 'Super Admin';
+    const user = getSession()?.name ?? 'Admin';
     const record = (activity, module, status = 'Success', by = user) => complianceLog.add({ id: newId('CL'), at: new Date().toISOString(), user: by, activity, module, status });
 
     // ---------- API integration ----------

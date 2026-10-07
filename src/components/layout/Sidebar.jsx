@@ -116,11 +116,11 @@ const Sidebar = ({ collapsed = false, onNavigateItem }) => {
                         className="w-full flex items-center gap-2 rounded-md text-left text-white"
                         style={{ border: '1px solid rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.12)', padding: collapsed ? 4 : '4px 8px', justifyContent: collapsed ? 'center' : 'flex-start' }}
                     >
-                        <Avatar size={26} style={{ background: '#fff', color: COLORS.primary, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>SA</Avatar>
+                        <Avatar size={26} style={{ background: '#fff', color: COLORS.primary, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>AD</Avatar>
                         {!collapsed && (
                             <>
                                 <span className="flex-1 min-w-0">
-                                    <span className="block text-[12px] font-medium leading-tight truncate">{session?.name ?? 'Super Admin'}</span>
+                                    <span className="block text-[12px] font-medium leading-tight truncate">{session?.name ?? 'Admin'}</span>
                                     <span className="block text-[9.5px] truncate opacity-90">{session?.email ?? ''}</span>
                                 </span>
                                 <DownOutlined style={{ fontSize: 11 }} />

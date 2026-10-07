@@ -136,7 +136,7 @@ export function useLogChange() {
     return useCallback((module, change, oldValue, newValue) => {
         const entry = {
             id: newId('CHG'),
-            changedBy: getSession()?.name ?? 'Super Admin',
+            changedBy: getSession()?.name ?? 'Admin',
             module,
             change,
             oldValue: String(oldValue ?? '—'),

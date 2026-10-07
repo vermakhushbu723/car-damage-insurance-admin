@@ -86,7 +86,7 @@ const DataDownloadPage = () => {
         types.forEach((type) => {
             const fileName = `${type.replace(' ', '_')}_${from.format('MMM_DD')}_to_${to.format('MMM_DD')}.${EXT[format]}`;
             const { kb, count } = buildFile(fileName, type, spec);
-            downloads.add({ id: newId('DL'), fileName, dataType: type, by: getSession()?.name ?? 'Super Admin', at: new Date().toISOString(), sizeKb: kb, status: 'Ready', spec, rows: count });
+            downloads.add({ id: newId('DL'), fileName, dataType: type, by: getSession()?.name ?? 'Admin', at: new Date().toISOString(), sizeKb: kb, status: 'Ready', spec, rows: count });
             logChange('Data Download', `${type} export`, '—', `${fileName} (${count} rows)`);
         });
         message.success(`${types.length} file(s) generated`);

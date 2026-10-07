@@ -168,9 +168,9 @@ export const SEED_COMPLIANCE = { auditLogin: false, retention: '7 Years', inputL
 export const RETENTION_OPTIONS = ['1 Year', '3 Years', '5 Years', '7 Years', '10 Years'];
 
 export const SEED_COMPLIANCE_LOG = [
-    { id: 'CL-1', at: '2026-09-20T10:24:00', user: 'Super Admin', activity: 'Updated API Configuration', module: 'API Integration', status: 'Success' },
+    { id: 'CL-1', at: '2026-09-20T10:24:00', user: 'Admin', activity: 'Updated API Configuration', module: 'API Integration', status: 'Success' },
     { id: 'CL-2', at: '2026-09-20T10:24:00', user: 'System', activity: 'Security Patch', module: 'System Update', status: 'Success' },
-    { id: 'CL-3', at: '2026-09-20T10:24:00', user: 'Super Admin', activity: 'Change Retention policy', module: 'Compilance', status: 'Approval Log' },
+    { id: 'CL-3', at: '2026-09-20T10:24:00', user: 'Admin', activity: 'Change Retention policy', module: 'Compilance', status: 'Approval Log' },
 ];
 
 // ---------- Audit logs ----------

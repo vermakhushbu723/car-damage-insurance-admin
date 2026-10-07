@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-**Login:** `superadmin@ibima.com` (or `9876543210`) / `Admin@123` + captcha.
+**Login:** `admin@ibima.com` (or `9876543210`) / `Admin@123` + captcha.
 
 ## Data
 No backend yet. All data is seeded from `src/data/seed.js`, `src/data/roles.js` and `src/data/modules.js`

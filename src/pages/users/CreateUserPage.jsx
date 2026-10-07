@@ -200,7 +200,7 @@ const CreateUserPage = () => {
         const list = users
             .filter((u) => u.status === 'Active' && u.id !== editingId && (roles.byKey[u.roleKey]?.level ?? 99) < level)
             .map((u) => ({ value: u.id, label: `${u.name} — ${roles.byKey[u.roleKey]?.name ?? u.roleKey}` }));
-        return [{ value: 'ADMIN', label: 'Super Admin (Insurer Admin)' }, ...list];
+        return [{ value: 'ADMIN', label: 'Admin (Insurer Admin)' }, ...list];
     }, [users, role, roles.byKey, editingId]);
 
     const roleOptions = roles.list.map((r) => ({ value: r.key, label: roleFormName(r) }));

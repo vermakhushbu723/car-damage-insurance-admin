@@ -5,8 +5,8 @@
 const SESSION_KEY = 'ibima_admin_session';
 
 export const DEMO_ADMIN = {
-    name: 'Super Admin',
-    email: 'superadmin@ibima.com',
+    name: 'Admin',
+    email: 'admin@ibima.com',
     mobile: '9876543210',
     password: 'Admin@123',
 };
@@ -27,7 +27,9 @@ export function login(identifier, password) {
 export function getSession() {
     try {
         const raw = sessionStorage.getItem(SESSION_KEY);
-        return raw ? JSON.parse(raw) : null;
+        const session = raw ? JSON.parse(raw) : null;
+        // Sessions from the old superadmin@ demo login are no longer valid.
+        return session?.email === DEMO_ADMIN.email ? session : null;
     } catch {
         return null;
     }

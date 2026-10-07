@@ -74,7 +74,7 @@ const Topbar = ({ onMenuClick, collapsed, onToggleCollapsed }) => {
 
     const accountMenu = {
         items: [
-            { key: 'profile', icon: <UserOutlined />, label: session ? `${session.name} (${session.email})` : 'Super Admin', disabled: true },
+            { key: 'profile', icon: <UserOutlined />, label: session ? `${session.name} (${session.email})` : 'Admin', disabled: true },
             { type: 'divider' },
             { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
         ],

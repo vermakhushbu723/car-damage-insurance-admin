@@ -106,7 +106,7 @@ const ApprovalLogicPage = () => {
             message.info('No unpublished changes.');
             return;
         }
-        const by = getSession()?.name ?? 'Super Admin';
+        const by = getSession()?.name ?? 'Admin';
         pending.forEach((r) => history.add({ id: newId('AH'), date: new Date().toISOString(), rule: r.title, changedBy: by, status: 'Published' }));
         setConfig((c) => ({ ...c, approvalRules: c.approvalRules.map(({ pending: _p, ...r }) => r) }));
         logChange('Approval Logic', 'Publish Changes', '—', `${pending.length} rule(s) published`);

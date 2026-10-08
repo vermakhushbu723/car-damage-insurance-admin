@@ -44,8 +44,8 @@ const ModuleCards = () => {
     const [config, setConfig] = useStoreValue('config');
     const logChange = useLogChange();
 
-    const toggle = (section, key, module, change) => (value) => {
-        setConfig((c) => ({ ...c, [section]: { ...c[section], [key]: value } }));
+    const toggle = (section, key, module, change) => async (value) => {
+        if (!(await setConfig((c) => ({ ...c, [section]: { ...c[section], [key]: value } })))) return;
         logChange(module, change, onOff(!value), onOff(value));
         message.success(`${change} turned ${value ? 'on' : 'off'}`);
     };

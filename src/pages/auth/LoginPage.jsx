@@ -89,9 +89,10 @@ const LoginPage = () => {
     // Already signed in -> straight to the dashboard. Bounced here by an expired session -> say so.
     useEffect(() => {
         if (getSession()) navigate(ROUTES.DASHBOARD, { replace: true });
+        else if (new URLSearchParams(location.search).get('expired')) setError('Your session has ended. Please sign in again.');
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const id = identifier.trim();
         if (!id) return setError('Please enter your email address or mobile number.');
@@ -105,7 +106,7 @@ const LoginPage = () => {
         setError('');
         setLoading(true);
         try {
-            const session = login(id, password);
+            const session = await login(id, password);
             message.success(`Welcome, ${session.name}`);
             navigate(location.state?.from ?? ROUTES.DASHBOARD, { replace: true });
         } catch (err) {

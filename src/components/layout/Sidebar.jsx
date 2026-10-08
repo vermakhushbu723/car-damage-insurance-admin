@@ -1,13 +1,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Tooltip, Dropdown, Avatar, App } from 'antd';
-import { DownOutlined, LogoutOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons';
+import { Tooltip, Dropdown, Avatar } from 'antd';
+import { DownOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
 import ibimaLogo from '../../assets/images/ibimaLogo.svg';
 import { SIDEBAR_GROUPS, isNavItemActive } from '../../constants/navigation';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import { getSession, logout } from '../../auth/session';
-import { useResetData } from '../../store/AdminStore';
+import { useClearData } from '../../store/AdminStore';
 
 const NavItem = ({ item, isActive, collapsed, onNavigate }) => {
     const Icon = item.icon;
@@ -38,13 +38,12 @@ const NavItem = ({ item, isActive, collapsed, onNavigate }) => {
 /**
  * Left navigation shown on every page -- logo + "+ Add More" (new user),
  * the grouped menu from constants/navigation.js, and the profile card
- * (reset sample data / logout) pinned at the bottom.
+ * (logout) pinned at the bottom.
  */
 const Sidebar = ({ collapsed = false, onNavigateItem }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { modal, message } = App.useApp();
-    const resetData = useResetData();
+    const clearData = useClearData();
     const session = getSession();
 
     const go = (path) => {
@@ -54,25 +53,13 @@ const Sidebar = ({ collapsed = false, onNavigateItem }) => {
 
     const profileMenu = {
         items: [
-            { key: 'reset', icon: <ReloadOutlined />, label: 'Reset sample data' },
-            { type: 'divider' },
             { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
         ],
         onClick: ({ key }) => {
             if (key === 'logout') {
                 logout();
+                clearData();
                 navigate(ROUTES.LOGIN, { replace: true });
-            }
-            if (key === 'reset') {
-                modal.confirm({
-                    title: 'Reset sample data?',
-                    content: 'Users, roles, branches, templates, communication rules and dashboard settings saved in this browser go back to the sample data.',
-                    okText: 'Reset',
-                    onOk: () => {
-                        resetData();
-                        message.success('Sample data restored.');
-                    },
-                });
             }
         },
     };

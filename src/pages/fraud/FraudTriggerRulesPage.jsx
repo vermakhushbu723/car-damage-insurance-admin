@@ -53,25 +53,25 @@ const FraudTriggerRulesPage = () => {
         logChange('Fraud Trigger Rules', r.rule, r.active ? 'ON' : 'OFF', active ? 'ON' : 'OFF');
     };
 
-    const save = (values) => {
+    const save = async (values) => {
         const editing = ruleForm?.rule;
         if (editing) {
-            rules.update(editing.id, { ...values, pending: true });
+            if (!(await rules.update(editing.id, { ...values, pending: true }))) return;
             logChange('Fraud Trigger Rules', `${values.rule} rule`, `${editing.severity} · ${editing.score}`, `${values.severity} · ${values.score}`);
         } else {
-            rules.setAll((l) => [...l, { ...values, id: newId('FR'), active: true, pending: true }]);
+            if (!(await rules.setAll((l) => [...l, { ...values, id: newId('FR'), active: true, pending: true }]))) return;
             logChange('Fraud Trigger Rules', 'Trigger Created', '—', `${values.rule} (${values.severity}, ${values.score})`);
         }
         message.success('Saved as draft — click Publish Rules to apply');
         setRuleForm(null);
     };
 
-    const publish = () => {
+    const publish = async () => {
         if (!pending.length) {
             message.info('No draft changes to publish.');
             return;
         }
-        rules.setAll((l) => l.map(({ pending: _p, ...r }) => r));
+        if (!(await rules.setAll((l) => l.map(({ pending: _p, ...r }) => r)))) return;
         logChange('Fraud Trigger Rules', 'Publish Rules', '—', `${pending.length} rule(s) published`);
         message.success(`${pending.length} rule(s) published`);
     };

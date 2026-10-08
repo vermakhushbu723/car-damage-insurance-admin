@@ -8,10 +8,10 @@ import DataTable from '../../components/ui/DataTable';
 import OnOffSwitch from '../../components/ui/OnOffSwitch';
 import { COLORS } from '../../constants/theme';
 import { RETENTION_OPTIONS } from '../../data/modules';
-import { useCollection, useLogChange, useStoreValue, newId } from '../../store/AdminStore';
-import { getSession } from '../../auth/session';
+import { useCollection, useLogChange, useStoreValue, useReload, newId } from '../../store/AdminStore';
+import { api } from '../../api/client';
 
-const fmtLong = (iso) => dayjs(iso).format('DD MMMM YYYY hh:mm A');
+const fmtLong = (iso) => (iso ? dayjs(iso).format('DD MMMM YYYY hh:mm A') : '—');
 const ENVIRONMENTS = ['Production', 'UAT', 'Sandbox'];
 const newer = (a, b) => a.split('.').map(Number).reduce((r, n, i) => (r !== 0 ? r : n - (b.split('.').map(Number)[i] ?? 0)), 0) > 0;
 
@@ -53,35 +53,47 @@ const SystemSettingsPage = () => {
     const [checking, setChecking] = useState(false);
     const [form] = Form.useForm();
 
-    const user = getSession()?.name ?? 'Admin';
-    const record = (activity, module, status = 'Success', by = user) => complianceLog.add({ id: newId('CL'), at: new Date().toISOString(), user: by, activity, module, status });
+    const reload = useReload();
+    // User and time are stamped by the server.
+    const record = (activity, module, status = 'Success') => complianceLog.add({ id: newId('CL'), at: new Date().toISOString(), activity, module, status });
 
     // ---------- API integration ----------
-    const test = (it) => {
+    // "Test" makes a real request to the configured endpoint from admin-service.
+    const test = async (it) => {
+        if (!it.endpoint) {
+            message.warning(`Configure the ${it.name} endpoint first.`);
+            setConfiguring(it);
+            return;
+        }
         setTesting(it.id);
-        setTimeout(() => {
-            const ok = /^https:\/\//.test(it.endpoint ?? '');
-            const responseSec = ok ? Math.round((0.5 + Math.random() * 2.4) * 10) / 10 : 0;
-            const status = !ok ? 'Failed' : responseSec > 2 ? 'Warning' : 'Connected';
-            integrations.update(it.id, { status, responseSec, syncAt: new Date().toISOString() });
-            record(`Tested ${it.name}`, 'API Integration', ok ? 'Success' : 'Failed');
+        try {
+            const res = await api.post(`/integrations/${it.id}/test`);
+            await reload(['integrations']);
+            record(`Tested ${it.name}`, 'API Integration', res.status === 'Failed' ? 'Failed' : 'Success');
+            if (res.status === 'Connected') message.success(`${it.name}: connected in ${res.responseSec}s`);
+            else if (res.status === 'Warning') message.warning(`${it.name}: ${res.lastError ?? `slow response (${res.responseSec}s)`}`);
+            else message.error(`${it.name}: connection failed${res.lastError ? ` (${res.lastError})` : ''} — check the endpoint`);
+        } catch (err) {
+            message.error(err.message);
+        } finally {
             setTesting(null);
-            if (status === 'Connected') message.success(`${it.name}: connected in ${responseSec}s`);
-            else if (status === 'Warning') message.warning(`${it.name}: slow response (${responseSec}s)`);
-            else message.error(`${it.name}: connection failed — check the endpoint`);
-        }, 900);
+        }
     };
 
-    const saveConfig = (values) => {
+    const saveConfig = async (values) => {
         const it = configuring;
-        integrations.update(it.id, { ...values, status: 'Connected', syncAt: new Date().toISOString() });
-        logChange('API Integration', it.name, `${it.env} · ${it.endpoint}`, `${values.env} · ${values.endpoint}`);
+        const { retry: _retry, ...rest } = values;
+        const saved = await integrations.update(it.id, rest);
+        if (!saved) return;
+        logChange('API Integration', it.name, `${it.env} · ${it.endpoint || '—'}`, `${values.env} · ${values.endpoint}`);
         record('Updated API Configuration', 'API Integration');
-        message.success(`${it.name} configuration saved`);
+        message.success(`${it.name} configuration saved — click Test to check the connection`);
         setConfiguring(null);
     };
 
     const detailLine = (it) => {
+        if (!it.endpoint) return 'Not configured — click Configure';
+        if (!it.syncAt) return 'Not tested yet';
         if (it.id === 'INT-2') return `Last sync ${dayjs(it.syncAt).isSame(dayjs(), 'day') ? 'Today' : dayjs(it.syncAt).format('DD MMM')} ${dayjs(it.syncAt).format('hh:mm A')}`;
         if (it.id === 'INT-3') return `Response Time ${it.responseSec} sec`;
         return `${it.type.toUpperCase()} - ${it.env}`;
@@ -103,15 +115,20 @@ const SystemSettingsPage = () => {
                     ? 'Maintenance approval is required — this sends an update request for approval.'
                     : `The platform moves from v${sys.current} to v${sys.latest}.${sys.maintenanceMode ? ' Users are restricted during the update (maintenance mode on).' : ''}`,
                 okText: sys.maintenanceApproval ? 'Request Approval' : 'Update Now',
-                onOk: () => {
+                onOk: async () => {
                     if (sys.maintenanceApproval) {
                         record(`Update to v${sys.latest} requested`, 'System Update', 'Approval Log');
                         logChange('System Update', 'Update request', `v${sys.current}`, `v${sys.latest} (awaiting approval)`);
                         message.info('Update request sent for maintenance approval');
                         return;
                     }
-                    const deployment = { id: newId('DP'), version: sys.latest, at: new Date().toISOString(), by: user, notes: 'Platform update' };
-                    setSys((s) => ({ ...s, current: s.latest, deployments: [deployment, ...s.deployments] }));
+                    try {
+                        await api.post('/system/update');
+                        await reload(['settings']);
+                    } catch (err) {
+                        message.error(err.message);
+                        return;
+                    }
                     record(`Updated to v${sys.latest}`, 'System Update');
                     logChange('System Update', 'Platform Version', `v${sys.current}`, `v${sys.latest}`);
                     message.success(`Updated to v${sys.latest}`);
@@ -120,16 +137,16 @@ const SystemSettingsPage = () => {
         }, 700);
     };
 
-    const toggleSys = (key, label) => (v) => {
-        setSys((s) => ({ ...s, [key]: v }));
+    const toggleSys = (key, label) => async (v) => {
+        if (!(await setSys((s) => ({ ...s, [key]: v })))) return;
         logChange('System Update', label, v ? 'OFF' : 'ON', v ? 'ON' : 'OFF');
         record(`${label} ${v ? 'enabled' : 'disabled'}`, 'System Update');
     };
 
     // ---------- Audit & compliance ----------
-    const setComp = (key, label, value, display) => {
+    const setComp = async (key, label, value, display) => {
         const needsApproval = compliance.configApproval && key !== 'configApproval';
-        setCompliance((c) => ({ ...c, [key]: value }));
+        if (!(await setCompliance((c) => ({ ...c, [key]: value })))) return;
         logChange('Compilance', label, display(compliance[key]), display(value));
         record(`Change ${label}`, 'Compilance', needsApproval ? 'Approval Log' : 'Success');
         if (needsApproval) message.info('Change recorded — config change approval is on, so it is logged for approval.');
@@ -199,7 +216,7 @@ const SystemSettingsPage = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2 rounded px-3 py-3" style={{ background: COLORS.primarySoft }}>
                             <div>
                                 <div className="text-[14px] font-semibold">Latest Available: v{sys.latest}</div>
-                                <div className="text-[11.5px] font-semibold">Release Date {dayjs(sys.latestReleasedAt).format('DD MMMM YYYY')}</div>
+                                <div className="text-[11.5px] font-semibold">Release Date {sys.latestReleasedAt ? dayjs(sys.latestReleasedAt).format('DD MMMM YYYY') : '—'}</div>
                             </div>
                             <Button type="primary" loading={checking} onClick={checkUpdate}>Check/Update</Button>
                         </div>
@@ -277,7 +294,7 @@ const SystemSettingsPage = () => {
                         <Form.Item name="type" label="Type" rules={[{ required: true }]}><Input /></Form.Item>
                         <Form.Item name="env" label="Environment" rules={[{ required: true }]}><Select options={ENVIRONMENTS.map((e) => ({ value: e, label: e }))} /></Form.Item>
                     </div>
-                    <Form.Item name="apiKey" label="API key / secret" extra="Stored only in this browser for the demo."><Input.Password placeholder="••••••••" /></Form.Item>
+                    <Form.Item name="apiKey" label="API key / secret" extra={configuring?.hasApiKey ? 'A key is saved — leave empty to keep it.' : 'Kept on the server only, never shown again.'}><Input.Password placeholder="••••••••" /></Form.Item>
                     <Form.Item name="retry" label="Retry on failure" valuePropName="checked" initialValue><Switch size="small" /></Form.Item>
                 </Form>
             </Modal>

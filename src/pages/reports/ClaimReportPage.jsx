@@ -10,9 +10,9 @@ import StatusTag from '../../components/ui/StatusTag';
 import ChartCard, { LegendRow } from '../../components/ui/ChartCard';
 import { COLORS } from '../../constants/theme';
 import { REGIONS, CLAIM_TYPES, CLAIM_STAGES } from '../../data/modules';
-import { INSURER_NAME } from '../../data/seed';
+import { organizationName } from '../../auth/session';
 import { useCollection } from '../../store/AdminStore';
-import { downloadCsv, formatDate, formatNumber } from '../../utils/format';
+import { downloadCsv, formatDate, formatNumber, periodTrend } from '../../utils/format';
 
 const ASSESSMENT = ['AI ILA', 'ILA', 'FLA'];
 const ORG_COLORS = ['#1463FF', '#2EB24B', '#EF4444', '#D4D4D8'];
@@ -67,7 +67,8 @@ const ClaimReportPage = () => {
     }, [rows, filters.range]);
 
     const orgs = useMemo(() => {
-        const vendor = (b) => b.organization !== INSURER_NAME && b.organization !== 'Global Insurance';
+        // Branches of this insurer = SaaS; branches of partner organizations = Service Provider.
+        const vendor = (b) => b.organization !== organizationName();
         return [
             { label: 'SaaS', count: branches.filter((b) => b.status === 'Active' && !vendor(b)).length },
             { label: 'Service Provider', count: branches.filter((b) => b.status !== 'Suspended' && vendor(b)).length },
@@ -120,12 +121,12 @@ const ClaimReportPage = () => {
             </div>
 
             <div className="grid gap-2 grid-cols-2 md:grid-cols-3 xl:grid-cols-6 mb-3">
-                <StatCard label="Total Claims" value={formatNumber(stats.total)} icon={<DatabaseOutlined />} tone="blue" trend="12%" />
-                <StatCard label="New Claims" value={stats.fresh} icon={<FileAddOutlined />} tone="purple" trend="8%" />
-                <StatCard label="Pending Survey" value={stats.survey} icon={<LoadingOutlined />} tone="orange" trend="10%" />
-                <StatCard label="Under Assessment" value={stats.assessment} icon={<AuditOutlined />} tone="teal" trend="15%" />
-                <StatCard label="Settlement" value={stats.settled} icon={<CheckSquareOutlined />} tone="green" trend="10%" />
-                <StatCard label="Rejected" value={stats.rejected} icon={<CloseOutlined />} tone="red" trend="9%" />
+                <StatCard label="Total Claims" value={formatNumber(stats.total)} icon={<DatabaseOutlined />} tone="blue" {...periodTrend(rows, (c) => c.intimatedAt)} />
+                <StatCard label="New Claims" value={stats.fresh} icon={<FileAddOutlined />} tone="purple" {...periodTrend(rows, (c) => c.intimatedAt)} />
+                <StatCard label="Pending Survey" value={stats.survey} icon={<LoadingOutlined />} tone="orange" {...periodTrend(rows, (c) => c.intimatedAt, (c) => c.stage === 'Survey')} />
+                <StatCard label="Under Assessment" value={stats.assessment} icon={<AuditOutlined />} tone="teal" {...periodTrend(rows, (c) => c.intimatedAt, (c) => ASSESSMENT.includes(c.stage))} />
+                <StatCard label="Settlement" value={stats.settled} icon={<CheckSquareOutlined />} tone="green" {...periodTrend(rows, (c) => c.intimatedAt, (c) => c.stage === 'Settled')} />
+                <StatCard label="Rejected" value={stats.rejected} icon={<CloseOutlined />} tone="red" {...periodTrend(rows, (c) => c.intimatedAt, (c) => c.stage === 'Rejected')} />
             </div>
 
             <div className="grid gap-2 grid-cols-1 lg:grid-cols-3 mb-3">

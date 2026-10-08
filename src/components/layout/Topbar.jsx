@@ -8,7 +8,7 @@ import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import { ALL_NAV_ITEMS, cleanLabel, navItemFor } from '../../constants/navigation';
 import { getSession, logout } from '../../auth/session';
-import { useCollection } from '../../store/AdminStore';
+import { useCollection, useClearData } from '../../store/AdminStore';
 import { formatDateTime } from '../../utils/format';
 
 const circleBtn = { width: 30, height: 30, background: 'rgba(255,255,255,0.75)' };
@@ -34,6 +34,7 @@ const Topbar = ({ onMenuClick, collapsed, onToggleCollapsed }) => {
     const { items: changes } = useCollection('changes');
     const [seenId, setSeenId] = useState(readSeen);
     const session = getSession();
+    const clearData = useClearData();
 
     const current = navItemFor(pathname);
     const searchOptions = ALL_NAV_ITEMS
@@ -81,6 +82,7 @@ const Topbar = ({ onMenuClick, collapsed, onToggleCollapsed }) => {
         onClick: ({ key }) => {
             if (key === 'logout') {
                 logout();
+                clearData();
                 navigate(ROUTES.LOGIN, { replace: true });
             }
         },

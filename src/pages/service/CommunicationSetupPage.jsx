@@ -6,7 +6,8 @@ import StatusTag from '../../components/ui/StatusTag';
 import StatCard from '../../components/ui/StatCard';
 import { COLORS, CHANNEL_STYLES } from '../../constants/theme';
 import { COMM_STAGES, COMM_CHANNELS, COMM_RECIPIENTS, SEND_TIMINGS, REMINDER_OPTIONS } from '../../data/seed';
-import { useCollection, useLogChange, newId } from '../../store/AdminStore';
+import { useCollection, useLogChange, useReload, newId } from '../../store/AdminStore';
+import { api } from '../../api/client';
 import { downloadCsv, formatDate, formatNumber, matchesQuery } from '../../utils/format';
 import dayjs from 'dayjs';
 
@@ -103,6 +104,7 @@ const CommunicationSetupPage = () => {
     const logsCol = useCollection('commLogs');
     const [viewLog, setViewLog] = useState(null);
     const logChange = useLogChange();
+    const reload = useReload();
     const rules = rulesCol.items;
     const templates = templatesCol.items;
     const channels = channelsCol.items;
@@ -128,24 +130,23 @@ const CommunicationSetupPage = () => {
         && (filters.channel === 'all' || r.channels.includes(filters.channel))
     ));
 
-    const ensureTemplate = (name, channelsUsed) => {
+    const ensureTemplate = async (name, channelsUsed) => {
         if (!templates.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
-            templatesCol.add({ id: newId('CT'), name, channel: channelsUsed.join(', '), body: `Dear {{insured_name}}, update on claim {{claim_no}}: ${name}.`, status: 'Active', updatedAt: new Date().toISOString() });
+            await templatesCol.add({ id: newId('CT'), name, channel: channelsUsed.join(', '), body: `Dear {{insured_name}}, update on claim {{claim_no}}: ${name}.`, status: 'Active', updatedAt: new Date().toISOString() });
         }
     };
 
-    const saveRule = (values) => {
+    const saveRule = async (values) => {
         const clean = { ...values, template: values.template.trim(), trigger: values.trigger.trim() };
         const editing = ruleForm?.rule;
-        ensureTemplate(clean.template, clean.channels);
+        if (!(await (editing ? rulesCol.update(editing.id, clean) : rulesCol.add({ ...clean, id: newId('CR') })))) return;
+        await ensureTemplate(clean.template, clean.channels);
         if (editing) {
-            rulesCol.update(editing.id, clean);
             const diffs = ['channels', 'reminder', 'status', 'initialSend', 'template'].filter((k) => JSON.stringify(editing[k]) !== JSON.stringify(clean[k]));
             diffs.forEach((k) => logChange('Communication Setup', `${clean.trigger} · ${k}`, [].concat(editing[k]).join(', '), [].concat(clean[k]).join(', ')));
             if (!diffs.length) logChange('Communication Setup', clean.trigger, '—', 'Updated');
             message.success('Rule updated');
         } else {
-            rulesCol.add({ ...clean, id: newId('CR') });
             logChange('Communication Setup', 'Rule Created', '—', `${clean.stage} · ${clean.trigger}`);
             message.success('Communication rule created');
             setTab('matrix');
@@ -153,35 +154,40 @@ const CommunicationSetupPage = () => {
         setRuleForm(null);
     };
 
-    const saveTemplate = (values) => {
+    const saveTemplate = async (values) => {
         const editing = templateForm?.template;
         if (editing) {
-            templatesCol.update(editing.id, { ...values, updatedAt: new Date().toISOString() });
+            if (!(await templatesCol.update(editing.id, { ...values, updatedAt: new Date().toISOString() }))) return;
             // Keep rule references pointing at the renamed template.
-            if (editing.name !== values.name) rulesCol.setAll((list) => list.map((r) => (r.template === editing.name ? { ...r, template: values.name } : r)));
+            if (editing.name !== values.name) await rulesCol.setAll((list) => list.map((r) => (r.template === editing.name ? { ...r, template: values.name } : r)));
             logChange('Communication Setup', `Template ${values.name}`, editing.status, values.status);
         } else {
-            templatesCol.add({ ...values, id: newId('CT'), updatedAt: new Date().toISOString() });
+            if (!(await templatesCol.add({ ...values, id: newId('CT'), updatedAt: new Date().toISOString() }))) return;
             logChange('Communication Setup', 'Template Added', '—', values.name);
         }
         message.success('Template saved');
         setTemplateForm(null);
     };
 
-    const toggleChannel = (c, enabled) => {
-        channelsCol.update(c.id, { enabled });
+    const toggleChannel = async (c, enabled) => {
+        if (!(await channelsCol.update(c.id, { enabled }))) return;
         logChange('Communication Setup', `${c.name} channel`, c.enabled ? 'ON' : 'OFF', enabled ? 'ON' : 'OFF');
     };
 
-    // Retry a failed message: the channel must be switched on; delivery counts toward Sent Today.
-    const retry = (log) => {
+    // Retry a failed message through the Communication Gateway (System Settings); delivery counts toward Sent Today.
+    const retry = async (log) => {
         const ch = channels.find((c) => c.name === log.channel);
         if (!ch?.enabled) {
             message.error(`${log.channel} channel is switched off — enable it under Channels first.`);
             return;
         }
-        logsCol.update(log.id, { status: 'Delivered', at: new Date().toISOString() });
-        channelsCol.update(ch.id, { sentToday: ch.sentToday + 1 });
+        try {
+            await api.post(`/comm-logs/${log.id}/retry`);
+        } catch (err) {
+            message.error(err.message);
+            return;
+        }
+        await reload(['commLogs', 'channels']);
         logChange('Communication Setup', `Retry ${log.claim} · ${log.channel}`, 'Failed', 'Delivered');
         message.success(`${log.communication} re-sent to ${log.recipient} via ${log.channel}`);
     };
@@ -204,9 +210,14 @@ const CommunicationSetupPage = () => {
         },
     ];
 
-    const sendTest = (c) => {
-        channelsCol.update(c.id, { sentToday: c.sentToday + 1 });
-        message.success(`Test ${c.name} message sent via ${c.provider}`);
+    const sendTest = async (c) => {
+        try {
+            await api.post(`/channels/${c.id}/test`);
+            message.success(`Test ${c.name} message sent${c.provider ? ` via ${c.provider}` : ''}`);
+        } catch (err) {
+            message.error(err.message);
+        }
+        await reload(['commLogs', 'channels']);
     };
 
     const exportMatrix = () => {

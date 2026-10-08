@@ -30,9 +30,9 @@ const TriggerHistoryPage = () => {
         return (!from || !d.isBefore(from.startOf('day'))) && (!to || !d.isAfter(to.endOf('day'))) && (status === 'all' || t.status === status);
     }), [triggers.items, from, to, status]);
 
-    const changeStatus = (t, next) => {
+    const changeStatus = async (t, next) => {
         if (next === t.status) return;
-        triggers.update(t.id, { status: next });
+        if (!(await triggers.update(t.id, { status: next }))) return;
         logChange('Fraud Triggers', `${t.claim} · ${t.trigger}`, t.status, next);
         message.success(`${t.claim} → ${next}`);
     };

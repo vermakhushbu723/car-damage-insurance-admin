@@ -2,25 +2,22 @@ import React, { useState } from 'react';
 import { Input, Button, App, Modal, Typography } from 'antd';
 import { LockOutlined, CheckCircleOutlined, CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
 import { COLORS } from '../../constants/theme';
-import { useCollection, useLogChange, useRoles } from '../../store/AdminStore';
-import { generatePassword } from '../../utils/format';
+import { useLogChange, useRoles } from '../../store/AdminStore';
+import { api } from '../../api/client';
 
 const STEPS = ['Search User By User ID', 'Verify Registered Contact Details', 'Send Secure Reset Link', 'Manual Reset With Audit Trail'];
-
-const normalizePhone = (s = '') => s.replace(/\D/g, '').slice(-10);
 
 const FieldLabel = ({ children }) => <label className="block text-[13px] font-semibold mt-2.5 mb-1" style={{ color: COLORS.primary }}>{children}</label>;
 
 const fieldStyle = { height: 34, fontSize: 12.5, background: '#F4F4F4', border: '1px solid #DDDDDD' };
 
 /**
- * Password Reset -- Verify User matches the User ID against the stored
- * user's email + contact number; only a verified user can get a reset link
- * or a manual reset (both recorded in Recent Configuration Changes).
+ * Password Reset -- Verify User asks the server to match the User ID with
+ * the registered email + contact number; only a verified user can get a
+ * reset link or a manual reset (both recorded in the audit trail).
  */
 const PasswordResetPage = () => {
     const { message } = App.useApp();
-    const { items: users, update } = useCollection('users');
     const roles = useRoles();
     const logChange = useLogChange();
 
@@ -30,6 +27,8 @@ const PasswordResetPage = () => {
     const [verified, setVerified] = useState(null);
     const [error, setError] = useState('');
     const [tempPassword, setTempPassword] = useState(null);
+    const [resetLink, setResetLink] = useState(null);
+    const [busy, setBusy] = useState(null);
 
     // Any edit after verifying needs a fresh verification.
     const edit = (setter) => (e) => {
@@ -38,17 +37,21 @@ const PasswordResetPage = () => {
         setError('');
     };
 
-    const verify = () => {
+    const verify = async () => {
         if (!userId.trim()) return setError('Enter the User ID.');
-        const user = users.find((u) => u.userId.toLowerCase() === userId.trim().toLowerCase());
-        if (!user) return setError(`No user found with User ID "${userId.trim()}".`);
         if (!email.trim() || !contact.trim()) return setError('Enter the registered email address and contact number.');
-        if (user.email.toLowerCase() !== email.trim().toLowerCase()) return setError('Email address does not match the registered email.');
-        if (normalizePhone(user.contact) !== normalizePhone(contact)) return setError('Contact number does not match the registered number.');
-        if (['Suspended', 'Resigned'].includes(user.status)) return setError(`${user.name}'s account is ${user.status}. Activate it in User Activation first.`);
-        setError('');
-        setVerified(user);
-        message.success(`${user.name} verified`);
+        setBusy('verify');
+        try {
+            const user = await api.post('/users/verify', { userId: userId.trim(), email: email.trim(), contact: contact.trim() });
+            setError('');
+            setVerified(user);
+            message.success(`${user.name} verified`);
+        } catch (err) {
+            setError(err.status === 404 ? `No user found with User ID "${userId.trim()}".` : err.message);
+        } finally {
+            setBusy(null);
+        }
+        return undefined;
     };
 
     const requireVerified = () => {
@@ -57,19 +60,32 @@ const PasswordResetPage = () => {
         return false;
     };
 
-    const sendLink = () => {
+    const sendLink = async () => {
         if (!requireVerified()) return;
-        update(verified.id, { lastResetLinkAt: new Date().toISOString() });
-        logChange('Password Reset', `Reset link · ${verified.userId}`, '—', `Sent to ${verified.email}`);
-        message.success(`Secure reset link sent to ${verified.email}`);
+        setBusy('link');
+        try {
+            const res = await api.post(`/users/${verified.id}/reset-link`);
+            logChange('Password Reset', `Reset link · ${verified.userId}`, '—', `Link for ${res.email}`);
+            setResetLink(res);
+        } catch (err) {
+            message.error(err.message);
+        } finally {
+            setBusy(null);
+        }
     };
 
-    const resetManually = () => {
+    const resetManually = async () => {
         if (!requireVerified()) return;
-        const pw = generatePassword();
-        update(verified.id, { tempPassword: pw, passwordResetAt: new Date().toISOString() });
-        logChange('Password Reset', `Manual reset · ${verified.userId}`, '—', 'Temp password issued');
-        setTempPassword(pw);
+        setBusy('manual');
+        try {
+            const res = await api.post(`/users/${verified.id}/reset-password`);
+            logChange('Password Reset', `Manual reset · ${verified.userId}`, '—', 'Temp password issued');
+            setTempPassword(res.tempPassword);
+        } catch (err) {
+            message.error(err.message);
+        } finally {
+            setBusy(null);
+        }
     };
 
     const clear = () => {
@@ -78,6 +94,7 @@ const PasswordResetPage = () => {
         setContact('');
         setVerified(null);
         setTempPassword(null);
+        setResetLink(null);
     };
 
     return (
@@ -119,9 +136,9 @@ const PasswordResetPage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 max-w-[560px]">
-                        <Button onClick={verify} style={{ height: 34, fontSize: 13, fontWeight: 600, background: COLORS.primarySoft, color: COLORS.primary, border: 'none' }}>Verify User</Button>
-                        <Button type="primary" onClick={sendLink} style={{ height: 34, fontSize: 13, fontWeight: 600 }}>Send  Link</Button>
-                        <Button onClick={resetManually} style={{ height: 34, fontSize: 13, fontWeight: 600, background: COLORS.primarySoft, color: COLORS.primary, border: 'none' }}>Reset Manually</Button>
+                        <Button onClick={verify} loading={busy === 'verify'} style={{ height: 34, fontSize: 13, fontWeight: 600, background: COLORS.primarySoft, color: COLORS.primary, border: 'none' }}>Verify User</Button>
+                        <Button type="primary" onClick={sendLink} loading={busy === 'link'} style={{ height: 34, fontSize: 13, fontWeight: 600 }}>Send  Link</Button>
+                        <Button onClick={resetManually} loading={busy === 'manual'} style={{ height: 34, fontSize: 13, fontWeight: 600, background: COLORS.primarySoft, color: COLORS.primary, border: 'none' }}>Reset Manually</Button>
                     </div>
                 </div>
             </div>
@@ -137,6 +154,21 @@ const PasswordResetPage = () => {
                     {tempPassword}
                 </Typography.Paragraph>
                 <p className="text-[12px] text-slate-500 m-0">Recorded in Recent Configuration Changes (audit trail).</p>
+            </Modal>
+
+            <Modal
+                open={!!resetLink}
+                title="Secure reset link created"
+                onCancel={clear}
+                footer={<Button type="primary" onClick={clear}>Done</Button>}
+            >
+                <p className="text-[12px]">
+                    One-time link for <b>{verified?.name}</b> ({resetLink?.email}), valid until {resetLink && new Date(resetLink.expiresAt).toLocaleString()}.
+                    {resetLink && !resetLink.emailSent && ' No mail server is set up yet, so share this link with the user securely.'}
+                </p>
+                <Typography.Paragraph copyable={{ text: resetLink?.link ?? '' }} className="text-[12px] font-mono rounded px-3 py-1.5 break-all" style={{ background: COLORS.bgField }}>
+                    {resetLink?.link}
+                </Typography.Paragraph>
             </Modal>
         </>
     );

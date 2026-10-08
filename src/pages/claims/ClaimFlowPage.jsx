@@ -60,7 +60,7 @@ const ClaimFlowPage = () => {
 
     const setStage = (id, patch) => setDraft((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
-    const save = () => {
+    const save = async () => {
         if (!dirty) {
             message.info('No changes to save.');
             setEditing(false);
@@ -72,14 +72,14 @@ const ClaimFlowPage = () => {
             ['owner', 'tat', 'rule'].forEach((k) => { if (before[k] !== s[k]) logChange('Claim Flow', `${s.stage} ${k.toUpperCase()}`, before[k], s[k]); });
             if (before.active !== s.active) logChange('Claim Flow', `${s.stage} Stage`, before.active ? 'ON' : 'OFF', s.active ? 'ON' : 'OFF');
         });
-        setStageConfig((c) => ({ ...c, stages: draft }));
+        if (!(await setStageConfig((c) => ({ ...c, stages: draft })))) return;
         setEditing(false);
         message.success('Stage configuration saved');
     };
 
-    const addStage = (values) => {
+    const addStage = async (values) => {
         const stage = { id: newId('ST'), active: true, ...values };
-        setStageConfig((c) => ({ ...c, stages: [...c.stages, stage] }));
+        if (!(await setStageConfig((c) => ({ ...c, stages: [...c.stages, stage] })))) return;
         logChange('Claim Flow', 'Stage Added', '—', `${values.stage} (${values.owner}, ${values.tat})`);
         message.success(`${values.stage} stage added`);
         setAddOpen(false);

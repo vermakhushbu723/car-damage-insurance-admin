@@ -59,7 +59,7 @@ const RolesPermissionsPage = () => {
     // Whole column on/off from the header (edit mode only).
     const setColumn = (action, value) => setDraft((d) => Object.fromEntries(Object.entries(d).map(([m, acts]) => [m, { ...acts, [action]: value }])));
 
-    const save = () => {
+    const save = async () => {
         if (!editing) {
             message.info('Click Edit/Modify to change permissions first.');
             return;
@@ -73,7 +73,7 @@ const RolesPermissionsPage = () => {
             message.info('No changes to save.');
             return;
         }
-        roles.update(role.key, { permissions: draft });
+        if (!(await roles.update(role.key, { permissions: draft }))) return;
         if (changed.length <= 3) changed.forEach((c) => logChange('Roles & Permissions', `${role.name}: ${c.m} · ${c.a}`, c.from ? 'ON' : 'OFF', c.to ? 'ON' : 'OFF'));
         else logChange('Roles & Permissions', `${role.name} permissions`, '—', `${changed.length} permissions updated`);
         setEditing(false);

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Drawer } from 'antd';
+import { Drawer, Spin, Result, Button } from 'antd';
+import { useDataStatus } from '../../store/AdminStore';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
@@ -25,6 +26,7 @@ const AppLayout = () => {
     const [collapsed, setCollapsed] = useState(readStoredCollapsed);
     const scrollRef = useRef(null);
     const { pathname } = useLocation();
+    const data = useDataStatus();
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
@@ -63,7 +65,16 @@ const AppLayout = () => {
                 <Topbar onMenuClick={() => setMobileNavOpen(true)} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
                 <main ref={scrollRef} className="flex-1 overflow-y-auto" style={{ background: '#FAFBFD' }}>
                     <div className="p-3 md:p-4 max-w-[1500px]">
-                        <Outlet />
+                        {data.loaded && <Outlet />}
+                        {!data.loaded && !data.error && <div className="flex justify-center py-24"><Spin /></div>}
+                        {data.error && (
+                            <Result
+                                status="warning"
+                                title="Could not load data"
+                                subTitle={data.error}
+                                extra={<Button type="primary" onClick={data.retry}>Try again</Button>}
+                            />
+                        )}
                     </div>
                 </main>
             </div>

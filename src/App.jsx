@@ -11,7 +11,7 @@ const DocumentTitle = () => {
     const { pathname } = useLocation();
     useEffect(() => {
         const item = navItemFor(pathname);
-        const name = pathname === ROUTES.LOGIN ? 'Login' : item && cleanLabel(item.label);
+        const name = pathname === ROUTES.LOGIN ? 'Login' : pathname === ROUTES.RESET_PASSWORD ? 'Reset Password' : item && cleanLabel(item.label);
         document.title = name ? `${name} | ${APP_NAME}` : APP_NAME;
     }, [pathname]);
     return null;

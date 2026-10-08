@@ -46,8 +46,8 @@ const ApprovalRules = () => {
     const navigate = useNavigate();
     const [config, setConfig] = useStoreValue('config');
     const logChange = useLogChange();
-    const toggle = (rule, value) => {
-        setConfig((c) => ({ ...c, approvalRules: c.approvalRules.map((r) => (r.id === rule.id ? { ...r, enabled: value } : r)) }));
+    const toggle = async (rule, value) => {
+        if (!(await setConfig((c) => ({ ...c, approvalRules: c.approvalRules.map((r) => (r.id === rule.id ? { ...r, enabled: value } : r)) })))) return;
         logChange('Approval Logic', rule.name, rule.enabled ? 'ON' : 'OFF', value ? 'ON' : 'OFF');
     };
     return (

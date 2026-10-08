@@ -9,14 +9,15 @@ import ViewConfigLink from '../../components/ui/ViewConfigLink';
 import { handlerLoad, HIGH_LOAD_PCT } from '../../components/dashboard/useDashboardStats';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
-import { useCollection, useLogChange } from '../../store/AdminStore';
+import { useCollection, useLogChange, useReload } from '../../store/AdminStore';
+import { api } from '../../api/client';
 
 const OPEN_STAGES = ['Intimation', 'Survey', 'AI ILA', 'ILA', 'FLA'];
 
 /**
- * Allocation Load -- live handler load from the stored users. "Reasigned"
- * moves open claims to another handler; Edit unlocks capacity limits,
- * Save stores them (the Dashboard's load summary follows).
+ * Allocation Load -- handler load from the claims assigned to each claim
+ * handler. "Reasigned" moves open claims to another handler on the server;
+ * Edit unlocks capacity limits, Save stores them (the Dashboard follows).
  */
 const AllocationLoadPage = () => {
     const navigate = useNavigate();
@@ -25,6 +26,8 @@ const AllocationLoadPage = () => {
     const claimsCol = useCollection('claims');
     const { items: branches } = useCollection('branches');
     const logChange = useLogChange();
+    const reload = useReload();
+    const [moving, setMoving] = useState(false);
 
     const handlers = useMemo(() => users.filter((u) => u.roleKey === 'claim-handler' && u.status === 'Active').map((u) => ({ ...u, load: handlerLoad(u) })), [users]);
     const [editing, setEditing] = useState(false);
@@ -49,41 +52,36 @@ const AllocationLoadPage = () => {
         return b ? b.name.replace(/ Branch| HO/, ' hub') : h.city;
     };
 
-    const save = () => {
+    const save = async () => {
         if (!dirty) {
             setEditing(false);
             return;
         }
-        handlers.forEach((h) => {
-            const next = capDraft[h.id];
-            if (next !== h.load.capacityLimit) {
-                update(h.id, (u) => ({ handlerStats: { ...u.handlerStats, capacityLimit: next } }));
-                logChange('Allocation', `${h.name} Capacity Limit`, h.load.capacityLimit, next);
-            }
-        });
+        const changed = handlers.filter((h) => capDraft[h.id] !== h.load.capacityLimit);
+        const saved = await Promise.all(changed.map((h) => update(h.id, { capacityLimit: capDraft[h.id] })));
+        changed.forEach((h, i) => { if (saved[i]) logChange('Allocation', `${h.name} Capacity Limit`, h.load.capacityLimit, capDraft[h.id]); });
         setEditing(false);
-        message.success('Handler capacity saved');
+        if (saved.every(Boolean)) message.success('Handler capacity saved');
     };
 
-    const doReassign = () => {
+    const doReassign = async () => {
         const { from, to, count } = reassign;
         const src = handlers.find((h) => h.id === from);
         const dst = handlers.find((h) => h.id === to);
         if (!dst || !count) return;
-        update(src.id, (u) => ({ handlerStats: { ...u.handlerStats, inProgress: u.handlerStats.inProgress - count, totalClaims: u.handlerStats.totalClaims - count } }));
-        update(dst.id, (u) => ({ handlerStats: { ...u.handlerStats, inProgress: u.handlerStats.inProgress + count, totalClaims: u.handlerStats.totalClaims + count } }));
-        // Move matching open claims in the claim list too.
-        let moved = 0;
-        claimsCol.setAll((list) => list.map((c) => {
-            if (moved < count && c.handlerId === src.id && OPEN_STAGES.includes(c.stage)) {
-                moved += 1;
-                return { ...c, handlerId: dst.id, handler: dst.name };
-            }
-            return c;
-        }));
-        logChange('Allocation', `Reassigned ${count} claim(s)`, src.name, dst.name);
-        message.success(`${count} claim(s) moved from ${src.name} to ${dst.name}`);
-        setReassign(null);
+        setMoving(true);
+        try {
+            // Oldest open claims of the source handler move to the target; loads are recounted on the server.
+            const res = await api.post('/claims/reassign', { fromHandlerId: src.id, toHandlerId: dst.id, count });
+            await reload(['users', 'claims']);
+            logChange('Allocation', `Reassigned ${res.moved} claim(s)`, src.name, dst.name);
+            message.success(`${res.moved} claim(s) moved from ${src.name} to ${dst.name}`);
+            setReassign(null);
+        } catch (err) {
+            message.error(err.message);
+        } finally {
+            setMoving(false);
+        }
     };
 
     const src = reassign && handlers.find((h) => h.id === reassign.from);
@@ -142,7 +140,7 @@ const AllocationLoadPage = () => {
                 </div>
             </div>
 
-            <Modal open={!!reassign} title={`Reassign claims — ${src?.name ?? ''}`} onCancel={() => setReassign(null)} onOk={doReassign} okText="Reassign" okButtonProps={{ disabled: !reassign?.to }} destroyOnHidden>
+            <Modal open={!!reassign} title={`Reassign claims — ${src?.name ?? ''}`} onCancel={() => setReassign(null)} onOk={doReassign} okText="Reassign" okButtonProps={{ disabled: !reassign?.to, loading: moving }} destroyOnHidden>
                 {reassign && (
                     <div className="flex flex-col gap-3 text-[12.5px]">
                         <div>{src.name} has <b>{src.load.inProgress}</b> open claim(s) · load {src.load.pct}%.</div>

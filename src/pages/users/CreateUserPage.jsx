@@ -9,10 +9,11 @@ import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import {
     ACCOUNT_TYPES, DEPARTMENTS, ACCOUNT_STATUSES, ZONES, ZONE_STATES, COUNTRIES, PLATFORMS, STATES, SHIFTS, LANGUAGES,
-    SKILL_TAGS, HANDLER_DESIGNATIONS, ROLE_LEVEL_HINT, roleFormName, roleFormTitle, emptyPermissions,
+    SKILL_TAGS, HANDLER_DESIGNATIONS, ROLE_LEVEL_HINT, roleFormName, roleFormTitle,
 } from '../../data/roles';
-import { INSURER_NAME } from '../../data/seed';
-import { useCollection, useLogChange, useRoles, newId } from '../../store/AdminStore';
+import { useCollection, useLogChange, useRoles } from '../../store/AdminStore';
+import { organizationName } from '../../auth/session';
+import { api } from '../../api/client';
 import { generatePassword } from '../../utils/format';
 
 const MOBILE_RE = /^(\+91[\s-]?)?[6-9]\d{9}$/;
@@ -167,12 +168,25 @@ const CreateUserPage = () => {
 
     // ?role=claim-handler preselects a role (Roles & Permissions "Add User");
     // ?edit=USR-0001 opens a user for modification.
+    // Lists come without profile images; the single-user read has it.
+    const loadForEdit = async (id) => {
+        try {
+            const full = await api.get(`/users/${encodeURIComponent(id)}`);
+            setEditingId(full.id);
+            form.resetFields();
+            form.setFieldsValue(userToForm(full));
+            return full;
+        } catch (err) {
+            message.error(err.message);
+            return null;
+        }
+    };
+
     useEffect(() => {
         const editId = params.get('edit');
         const target = editId && users.find((u) => u.id === editId);
         if (target) {
-            setEditingId(target.id);
-            form.setFieldsValue(userToForm(target));
+            loadForEdit(target.id);
         } else {
             form.setFieldsValue(blankForm(params.get('role') && roles.byKey[params.get('role')] ? params.get('role') : undefined));
         }
@@ -231,9 +245,11 @@ const CreateUserPage = () => {
         },
     });
 
-    const submit = (values) => {
+    const [saving, setSaving] = useState(false);
+
+    const submit = async (values) => {
         const branch = branches.find((b) => b.id === values.extra?.branchId);
-        const organization = branch?.organization ?? (values.accountType === 'Internal' ? INSURER_NAME : (editing?.organization ?? 'External Partner'));
+        const organization = branch?.organization ?? (values.accountType === 'Internal' ? organizationName() : (editing?.organization ?? 'External Partner'));
         const record = {
             ...values,
             name: values.name.trim(),
@@ -247,20 +263,21 @@ const CreateUserPage = () => {
         const roleName = role?.name ?? values.roleKey;
 
         if (editing) {
-            update(editing.id, record);
+            setSaving(true);
+            const saved = await update(editing.id, record);
+            setSaving(false);
+            if (!saved) return;
             logChange('Users & Roles', 'User Modified', `${editing.name} (${roles.byKey[editing.roleKey]?.name ?? ''}, ${editing.status})`, `${record.name} (${roleName}, ${record.status})`);
             message.success(`${record.name} updated`);
             resetToNew();
             return;
         }
 
-        const user = {
-            ...record,
-            id: newId('USR'),
-            createdAt: new Date().toISOString(),
-            ...(values.roleKey === 'claim-handler' ? { handlerStats: { totalClaims: 0, inProgress: 0, completed: 0, capacityLimit: 100 } } : {}),
-        };
-        add(user);
+        // The API stores only a hash of the temp password and returns it once.
+        setSaving(true);
+        const user = await add({ ...record, createdAt: new Date().toISOString() });
+        setSaving(false);
+        if (!user) return;
         logChange('Users & Roles', 'User Created', '—', `${user.name} (${roleName})`);
         const done = modal.success({
             title: `${roleFormName(role)} account created`,
@@ -286,33 +303,23 @@ const CreateUserPage = () => {
         resetToNew(values.roleKey);
     };
 
-    const loadPicked = () => {
+    const loadPicked = async () => {
         const u = users.find((x) => x.id === pickedUser);
-        if (!u) return;
-        setEditingId(u.id);
-        form.resetFields();
-        form.setFieldsValue(userToForm(u));
+        if (!u || !(await loadForEdit(u.id))) return;
         setPickerOpen(false);
         setPickedUser(null);
         message.info(`Editing ${u.name}`);
     };
 
-    const createRole = (values) => {
+    const createRole = async (values) => {
         const name = values.name.trim();
         if (roles.list.some((r) => r.name.toLowerCase() === name.toLowerCase())) {
             roleForm.setFields([{ name: 'name', errors: ['A role with this name already exists'] }]);
             return;
         }
-        const source = roles.byKey[values.copyFrom];
-        const newRole = {
-            key: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`,
-            name,
-            short: name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 4),
-            level: values.level,
-            extra: null,
-            permissions: source ? JSON.parse(JSON.stringify(source.permissions)) : emptyPermissions(),
-        };
-        roles.add(newRole);
+        // The server copies the permissions (view-only when no role is picked) and picks the key.
+        const newRole = await roles.add({ name, level: values.level, copyFrom: values.copyFrom, permissions: undefined });
+        if (!newRole) return;
         logChange('Users & Roles', 'Role Added', '—', `${name} (L${values.level})`);
         form.setFieldValue('roleKey', newRole.key);
         setRoleModalOpen(false);
@@ -546,7 +553,7 @@ const CreateUserPage = () => {
 
                     <div className="flex justify-end gap-2">
                         {editing && <Button onClick={() => resetToNew()}>Cancel</Button>}
-                        <Button type="primary" htmlType="submit" style={{ minWidth: 160 }}>{submitLabel}</Button>
+                        <Button type="primary" htmlType="submit" loading={saving} style={{ minWidth: 160 }}>{submitLabel}</Button>
                     </div>
                 </div>
             </Form>

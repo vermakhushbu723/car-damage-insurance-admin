@@ -38,8 +38,8 @@ const ActiveUsersPage = () => {
     const journey = config.journey;
     const enabled = journey.enabled[journey.mode];
 
-    const toggleMatrix = (row, value) => {
-        setConfig((c) => ({ ...c, approvalMatrix: c.approvalMatrix.map((r) => (r.id === row.id ? { ...r, enabled: value } : r)) }));
+    const toggleMatrix = async (row, value) => {
+        if (!(await setConfig((c) => ({ ...c, approvalMatrix: c.approvalMatrix.map((r) => (r.id === row.id ? { ...r, enabled: value } : r)) })))) return;
         logChange('Approval Logic', `${row.approval} (${row.logic})`, row.enabled ? 'ON' : 'OFF', value ? 'ON' : 'OFF');
     };
 

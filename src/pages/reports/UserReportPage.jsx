@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip as AntTooltip } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
@@ -11,8 +11,7 @@ import StatusTag from '../../components/ui/StatusTag';
 import ChartCard, { LegendRow } from '../../components/ui/ChartCard';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
-import { HEATMAP } from '../../data/modules';
-import { useCollection, useRoles } from '../../store/AdminStore';
+import { useCollection, useRoles, useStoreValue, useReload } from '../../store/AdminStore';
 import { formatNumber } from '../../utils/format';
 
 const PIE_COLORS = ['#2563EB', '#7C3AED', '#F59E0B', '#0E8AA8', '#4F46E5', '#0284C7', '#EA580C', '#16A34A', '#D97706', '#DB2777', '#64748B'];
@@ -29,6 +28,11 @@ const UserReportPage = () => {
     const { items: users } = useCollection('users');
     const { items: claims } = useCollection('claims');
     const roles = useRoles();
+    const [usage] = useStoreValue('usage');
+    const reload = useReload();
+    useEffect(() => { reload(['usage']); }, [reload]);
+    // Sign-ins over the last 90 days (admin-service audit trail), Mon-Sat x two-hour slots.
+    const heatmap = usage?.heatmap ?? [];
 
     const stats = {
         total: users.length,
@@ -36,6 +40,17 @@ const UserReportPage = () => {
         inactive: users.filter((u) => ['Inactive', 'Suspended', 'Resigned', 'On Leave'].includes(u.status)).length,
         fresh: users.filter((u) => dayjs(u.createdAt).isAfter(dayjs().subtract(30, 'day'))).length,
     };
+
+    // Change vs the previous 30 days (from account creation dates; status history is not kept).
+    const trend = useMemo(() => {
+        const cut = dayjs().subtract(30, 'day');
+        const cut60 = dayjs().subtract(60, 'day');
+        const pct = (now, before) => (before ? Math.round(((now - before) / before) * 100) : now ? 100 : 0);
+        const before = users.filter((u) => dayjs(u.createdAt).isBefore(cut)).length;
+        const prevNew = users.filter((u) => dayjs(u.createdAt).isBefore(cut) && !dayjs(u.createdAt).isBefore(cut60)).length;
+        const t = (n) => ({ trend: `${Math.abs(n)}%`, trendDown: n < 0 });
+        return { total: t(pct(users.length, before)), fresh: t(pct(stats.fresh, prevNew)) };
+    }, [users, stats.fresh]);
 
     // Cumulative users over the last 6 weeks.
     const growth = useMemo(() => Array.from({ length: 7 }, (_, i) => {
@@ -62,10 +77,10 @@ const UserReportPage = () => {
             <PageTitle title="User Report" />
 
             <div className="grid gap-2 grid-cols-2 lg:grid-cols-4 mb-3">
-                <StatCard label="Total Users" value={formatNumber(stats.total)} icon={<DatabaseOutlined />} tone="blue" trend="12%" trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.USER_ACTIVATION)} />
-                <StatCard label="Active Users" value={formatNumber(stats.active)} icon={<DatabaseOutlined />} tone="green" trend="12%" trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.ACTIVE_USERS)} />
-                <StatCard label="Inactive Users" value={formatNumber(stats.inactive)} icon={<DatabaseOutlined />} tone="slate" trend="12%" trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.USER_ACTIVATION)} />
-                <StatCard label="New Users" value={formatNumber(stats.fresh)} icon={<DatabaseOutlined />} tone="purple" trend="12%" trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.CREATE_USERS)} />
+                <StatCard label="Total Users" value={formatNumber(stats.total)} icon={<DatabaseOutlined />} tone="blue" {...trend.total} trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.USER_ACTIVATION)} />
+                <StatCard label="Active Users" value={formatNumber(stats.active)} icon={<DatabaseOutlined />} tone="green" onClick={() => navigate(ROUTES.ACTIVE_USERS)} />
+                <StatCard label="Inactive Users" value={formatNumber(stats.inactive)} icon={<DatabaseOutlined />} tone="slate" onClick={() => navigate(ROUTES.USER_ACTIVATION)} />
+                <StatCard label="New Users" value={formatNumber(stats.fresh)} icon={<DatabaseOutlined />} tone="purple" {...trend.fresh} trendLabel="VS Last 30 Days" onClick={() => navigate(ROUTES.CREATE_USERS)} />
             </div>
 
             <div className="grid gap-2 grid-cols-1 lg:grid-cols-3 mb-3">
@@ -100,11 +115,12 @@ const UserReportPage = () => {
 
                 <ChartCard title="Users Active Heat Map">
                     <div className="flex flex-col gap-1 flex-1">
-                        {HEATMAP.map((row) => (
+                        {!heatmap.some((r) => r.slots.some(Boolean)) && <span className="text-[11px]" style={{ color: COLORS.textMuted }}>No sign-ins recorded yet.</span>}
+                        {heatmap.map((row) => (
                             <div key={row.day} className="flex items-center gap-1">
                                 <span className="text-[9px] w-6" style={{ color: COLORS.textMuted }}>{row.day}</span>
                                 {row.slots.map((v, s) => (
-                                    <AntTooltip key={s} title={`${row.day} ${s * 2}:00–${s * 2 + 2}:00 · ${['very low', 'low', 'medium', 'high', 'peak'][v]} activity`}>
+                                    <AntTooltip key={s} title={`${row.day} ${s * 2}:00–${s * 2 + 2}:00 · ${row.counts?.[s] ?? 0} sign-in(s)`}>
                                         <span className="flex-1 rounded-sm" style={{ height: 17, background: HEAT[v] }} />
                                     </AntTooltip>
                                 ))}

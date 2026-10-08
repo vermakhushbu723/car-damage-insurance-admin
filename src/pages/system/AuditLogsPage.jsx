@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Input, DatePicker, Select, Modal, Descriptions } from 'antd';
 import { BankOutlined, TeamOutlined, LineChartOutlined, ApiOutlined, HddOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -7,19 +7,22 @@ import StatCard from '../../components/ui/StatCard';
 import DataTable from '../../components/ui/DataTable';
 import StatusTag from '../../components/ui/StatusTag';
 import { COLORS } from '../../constants/theme';
-import { AUDIT_MODULES, AUDIT_ACTIONS, SECURITY_BASE } from '../../data/modules';
-import { useCollection } from '../../store/AdminStore';
-import { formatNumber, matchesQuery } from '../../utils/format';
+import { AUDIT_MODULES, AUDIT_ACTIONS } from '../../data/modules';
+import { useCollection, useReload } from '../../store/AdminStore';
+import { formatNumber, matchesQuery, periodTrend } from '../../utils/format';
 
 const CONFIG_MODULES = ['Claim Flow', 'Approval Logic', 'Fraud Routing', 'Fraud Trigger Rules', 'Allocation', 'Recommendation Engine', 'Communication Setup', 'Roles & Permissions', 'Document Templates', 'Branches/Offices', 'Claim Configuration'];
 const EMPTY = { q: '', from: dayjs().subtract(30, 'day'), to: dayjs(), module: 'all', action: 'all' };
 
 /**
- * Audit Logs -- seeded platform events plus every change made in this
- * portal (Recent Configuration Changes), so actions appear here live.
+ * Audit Logs -- security events from admin-service (sign-ins, failed
+ * sign-ins, password resets, exports) plus every configuration change.
  */
 const AuditLogsPage = () => {
     const { items: auditEvents } = useCollection('auditEvents');
+    const reload = useReload();
+    // Sign-ins, resets and exports happen outside this page -- fetch the latest when it opens.
+    useEffect(() => { reload(['auditEvents', 'changes']); }, [reload]);
     const { items: changes } = useCollection('changes');
     const [draft, setDraft] = useState(EMPTY);
     const [filters, setFilters] = useState(EMPTY);
@@ -27,8 +30,8 @@ const AuditLogsPage = () => {
 
     const events = useMemo(() => [
         ...changes.map((c) => ({
-            id: c.id, at: c.changedOn, user: c.changedBy, role: 'Admin', update: c.change, reference: c.module === 'Password Reset' ? 'Password Reset' : c.oldValue === '—' ? 'Created' : 'Updated',
-            device: '192.168.1.45 / Windows', module: c.module, status: 'Success', detail: `${c.oldValue} → ${c.newValue}`,
+            id: c.id, at: c.changedOn, user: c.changedBy, role: 'Admin', update: c.change, reference: c.oldValue === '—' ? 'Created' : 'Updated',
+            device: c.device ?? '—', module: c.module, status: 'Success', detail: `${c.oldValue} → ${c.newValue}`,
         })),
         ...auditEvents,
     ].sort((a, b) => dayjs(b.at).valueOf() - dayjs(a.at).valueOf()), [changes, auditEvents]);
@@ -54,10 +57,10 @@ const AuditLogsPage = () => {
     const byModule = modules.map((m) => [m, events.filter((e) => e.module === m).length]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const maxModule = Math.max(1, ...byModule.map(([, n]) => n)) * 1.6;
     const security = [
-        ['Successful Logins', SECURITY_BASE.successfulLogins + events.filter((e) => e.reference === 'Login' && e.status === 'Success').length],
-        ['Failed Logins', SECURITY_BASE.failedLogins + events.filter((e) => e.reference === 'Failed Login').length],
-        ['Password Resets', SECURITY_BASE.passwordResets + events.filter((e) => e.reference === 'Password Reset').length],
-        ['Permission Denied', SECURITY_BASE.permissionDenied + events.filter((e) => e.reference === 'Permission Denied').length],
+        ['Successful Logins', events.filter((e) => e.reference === 'Login' && e.status === 'Success').length],
+        ['Failed Logins', events.filter((e) => e.reference === 'Failed Login').length],
+        ['Password Resets', events.filter((e) => e.reference === 'Password Reset').length],
+        ['Permission Denied', events.filter((e) => e.reference === 'Permission Denied').length],
     ];
 
     const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
@@ -83,11 +86,11 @@ const AuditLogsPage = () => {
             <PageTitle title="Audit Logs" />
 
             <div className="grid gap-2 grid-cols-2 lg:grid-cols-5 mb-3">
-                <StatCard label="Total Events" value={formatNumber(stats.total)} icon={<BankOutlined />} tone="blue" trend="6.8%" trendLabel="Vs Last 30 Days" onClick={() => { setDraft(EMPTY); setFilters(EMPTY); }} />
-                <StatCard label="Users Activity" value={formatNumber(stats.users)} icon={<TeamOutlined />} tone="purple" trend="10.2%" trendLabel="Vs Last 30 Days" />
-                <StatCard label="Configuration Changes" value={formatNumber(stats.config)} icon={<LineChartOutlined />} tone="orange" trend="12.5%" trendLabel="Vs Last 30 Days" />
-                <StatCard label="Security Events" value={formatNumber(stats.security)} icon={<ApiOutlined />} tone="teal" trend="9.4%" trendLabel="Vs Last 30 Days" onClick={showSecurity} />
-                <StatCard label="Failed Action" value={formatNumber(stats.failed)} icon={<HddOutlined />} tone="green" trend="14.2%" trendLabel="Vs Last 30 Days" />
+                <StatCard label="Total Events" value={formatNumber(stats.total)} icon={<BankOutlined />} tone="blue" {...periodTrend(events, (e) => e.at)} trendLabel="Vs Last 30 Days" onClick={() => { setDraft(EMPTY); setFilters(EMPTY); }} />
+                <StatCard label="Users Activity" value={formatNumber(stats.users)} icon={<TeamOutlined />} tone="purple" {...periodTrend(events, (e) => e.at, (e) => ['Users', 'User Activation', 'Users & Roles', 'System'].includes(e.module))} trendLabel="Vs Last 30 Days" />
+                <StatCard label="Configuration Changes" value={formatNumber(stats.config)} icon={<LineChartOutlined />} tone="orange" {...periodTrend(events, (e) => e.at, (e) => CONFIG_MODULES.includes(e.module))} trendLabel="Vs Last 30 Days" />
+                <StatCard label="Security Events" value={formatNumber(stats.security)} icon={<ApiOutlined />} tone="teal" {...periodTrend(events, (e) => e.at, (e) => ['Security', 'Password Reset'].includes(e.module))} trendLabel="Vs Last 30 Days" onClick={showSecurity} />
+                <StatCard label="Failed Action" value={formatNumber(stats.failed)} icon={<HddOutlined />} tone="green" {...periodTrend(events, (e) => e.at, (e) => e.status === 'Failed')} trendDown={false} trendLabel="Vs Last 30 Days" />
             </div>
 
             <div className="filter-bar grid gap-2 mb-3 items-end" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>

@@ -2,6 +2,7 @@
 // read from here so a path is only ever changed in one place.
 export const ROUTES = {
     LOGIN: '/login',
+    RESET_PASSWORD: '/reset-password',
     HOME: '/',
     DASHBOARD: '/dashboard',
     ACTIVE_USERS: '/active-users',

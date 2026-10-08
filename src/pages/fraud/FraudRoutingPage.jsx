@@ -40,7 +40,7 @@ const FraudRoutingPage = () => {
 
     const setRow = (id, patch) => setDraft((l) => l.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
-    const save = () => {
+    const save = async () => {
         if (!dirty) {
             message.info('No changes to save.');
             setEditing(false);
@@ -51,13 +51,13 @@ const FraudRoutingPage = () => {
             ['score', 'action', 'recipient', 'hold'].forEach((k) => { if (b[k] !== r[k]) logChange('Fraud Routing', `${r.severity} ${k}`, b[k], r[k]); });
             if (b.active !== r.active) logChange('Fraud Routing', `${r.severity} routing`, b.active ? 'ON' : 'OFF', r.active ? 'ON' : 'OFF');
         });
-        setRouting((x) => ({ ...x, matrix: draft }));
+        if (!(await setRouting((x) => ({ ...x, matrix: draft })))) return;
         setEditing(false);
         message.success('Routing matrix saved');
     };
 
-    const toggleSafeguard = (s, on) => {
-        setRouting((x) => ({ ...x, safeguards: x.safeguards.map((g) => (g.id === s.id ? { ...g, on } : g)) }));
+    const toggleSafeguard = async (s, on) => {
+        if (!(await setRouting((x) => ({ ...x, safeguards: x.safeguards.map((g) => (g.id === s.id ? { ...g, on } : g)) })))) return;
         logChange('Fraud Routing', s.label, s.on ? 'ON' : 'OFF', on ? 'ON' : 'OFF');
     };
 

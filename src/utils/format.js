@@ -64,3 +64,21 @@ export function generatePassword(length = 10) {
     const core = Array.from({ length: length - 4 }, () => pick(PW_CHARS)).join('');
     return `${pick('ABCDEFGHJKLMNPQRSTUVWXYZ')}${pick('abcdefghjkmnpqrstuvwxyz')}${core}${pick('23456789')}${pick('@#$%&!')}`;
 }
+
+/**
+ * StatCard trend props: how many `items` matching `match` fall in the last
+ * 30 days vs the 30 days before (by `dateOf`). -> { trend: '12%', trendDown }
+ */
+export function periodTrend(items, dateOf, match = () => true) {
+    const now = dayjs();
+    let current = 0;
+    let previous = 0;
+    for (const it of items) {
+        if (!match(it)) continue;
+        const d = dayjs(dateOf(it));
+        if (d.isAfter(now.subtract(30, 'day'))) current += 1;
+        else if (d.isAfter(now.subtract(60, 'day'))) previous += 1;
+    }
+    const pct = previous ? Math.round(((current - previous) / previous) * 1000) / 10 : current ? 100 : 0;
+    return { trend: `${Math.abs(pct)}%`, trendDown: pct < 0 };
+}

@@ -8,7 +8,6 @@ import DataTable from '../../components/ui/DataTable';
 import { COLORS, SEVERITY_STYLES } from '../../constants/theme';
 import { SEVERITIES } from '../../data/modules';
 import { useCollection, useLogChange, useStoreValue, newId } from '../../store/AdminStore';
-import { getSession } from '../../auth/session';
 import { formatDate, formatNumber } from '../../utils/format';
 
 const toOptions = (arr) => arr.map((v) => ({ value: v, label: v }));
@@ -85,37 +84,37 @@ const ApprovalLogicPage = () => {
         logChange('Approval Logic', rule.title, rule.enabled ? 'ON' : 'OFF', v ? 'ON' : 'OFF');
     };
 
-    const saveRule = (values) => {
+    const saveRule = async (values) => {
         const editing = ruleForm?.rule;
         if (editing) {
-            patchRule(editing.id, values);
+            if (!(await patchRule(editing.id, values))) return;
             logChange('Approval Logic', `${values.title} rule`, editing.condition, values.condition);
             message.success('Rule updated — publish to apply');
         } else {
             const rule = { ...values, id: newId('AR'), enabled: true, pending: true, name: values.title, desc: values.condition };
-            setConfig((c) => ({ ...c, approvalRules: [...c.approvalRules, rule] }));
+            if (!(await setConfig((c) => ({ ...c, approvalRules: [...c.approvalRules, rule] })))) return;
             logChange('Approval Logic', 'Rule Added', '—', values.title);
             message.success('Rule added — publish to apply');
         }
         setRuleForm(null);
     };
 
-    const publish = () => {
+    const publish = async () => {
         const pending = rules.filter((r) => r.pending);
         if (!pending.length) {
             message.info('No unpublished changes.');
             return;
         }
-        const by = getSession()?.name ?? 'Admin';
-        pending.forEach((r) => history.add({ id: newId('AH'), date: new Date().toISOString(), rule: r.title, changedBy: by, status: 'Published' }));
-        setConfig((c) => ({ ...c, approvalRules: c.approvalRules.map(({ pending: _p, ...r }) => r) }));
+        if (!(await setConfig((c) => ({ ...c, approvalRules: c.approvalRules.map(({ pending: _p, ...r }) => r) })))) return;
+        // Date and "changed by" are stamped by the server.
+        await Promise.all(pending.map((r) => history.add({ id: newId('AH'), date: new Date().toISOString(), rule: r.title, status: 'Published' })));
         logChange('Approval Logic', 'Publish Changes', '—', `${pending.length} rule(s) published`);
         message.success(`${pending.length} rule(s) published`);
     };
 
     const setCell = (id, key, value) => setMatrixDraft((list) => list.map((r) => (r.id === id ? { ...r, [key]: value } : r)));
 
-    const saveMatrix = () => {
+    const saveMatrix = async () => {
         if (!matrixDirty) {
             message.info('No changes to save.');
             setModifying(false);
@@ -126,7 +125,7 @@ const ApprovalLogicPage = () => {
             ['motorOD', 'fire', 'other'].forEach((k) => { if (before && before[k] !== r[k]) logChange('Approval Logic', `${r.role} · ${k === 'motorOD' ? 'Motor OD' : k === 'fire' ? 'Fire' : 'Other'}`, before[k], r[k]); });
             if (!before) logChange('Approval Logic', 'Authority Added', '—', r.role);
         });
-        authority.setAll(matrixDraft);
+        if (!(await authority.setAll(matrixDraft))) return;
         setModifying(false);
         message.success('Authority matrix saved');
     };

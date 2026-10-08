@@ -131,16 +131,16 @@ const DocumentTemplatesPage = () => {
     const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     const preview = templates.find((t) => t.id === previewId);
 
-    const save = (values) => {
+    const save = async (values) => {
         const editing = formState?.template;
         const clean = { ...values, name: values.name.trim() };
         if (editing) {
             const version = bumpVersion(editing.version);
-            update(editing.id, { ...clean, version, updatedAt: new Date().toISOString() });
+            if (!(await update(editing.id, { ...clean, version, updatedAt: new Date().toISOString() }))) return;
             logChange('Document Templates', clean.name, `v${editing.version}`, `v${version}`);
             message.success(`${clean.name} saved as v${version}`);
         } else {
-            add({ ...clean, id: newId('TPL'), version: '1.0', updatedAt: new Date().toISOString() });
+            if (!(await add({ ...clean, id: newId('TPL'), version: '1.0', updatedAt: new Date().toISOString() }))) return;
             logChange('Document Templates', 'Template Created', '—', `${clean.name} (${clean.category})`);
             setCategory('All');
             setPage(1);

@@ -45,7 +45,7 @@ const RecommendationEnginePage = () => {
         return { pending: pending.length, auto, manual: Math.max(0, pending.length - auto), exception };
     }, [claims, triggers, rec.rules]);
 
-    const saveMatrix = () => {
+    const saveMatrix = async () => {
         if (!dirty) {
             message.info('No changes to save.');
             setModifying(false);
@@ -57,7 +57,7 @@ const RecommendationEnginePage = () => {
             else if (JSON.stringify(before) !== JSON.stringify(r)) logChange('Recommendation Engine', r.rule, `${before.condition} · ${before.result} · ${before.status}`, `${r.condition} · ${r.result} · ${r.status}`);
         });
         rec.rules.filter((b) => !draft.some((r) => r.id === b.id)).forEach((b) => logChange('Recommendation Engine', 'Rule Removed', b.rule, '—'));
-        setRec((x) => ({ ...x, rules: draft }));
+        if (!(await setRec((x) => ({ ...x, rules: draft })))) return;
         setModifying(false);
         message.success('Recommendation matrix saved');
     };

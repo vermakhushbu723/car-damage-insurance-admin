@@ -57,13 +57,13 @@ const UserActivationPage = () => {
 
     const rows = filtered.filter(TABS.find((t) => t.key === tab).match);
 
-    const applyStatus = (ids, status) => {
+    const applyStatus = async (ids, status) => {
         const targets = users.filter((u) => ids.includes(u.id) && u.status !== status);
         if (!targets.length) {
             message.info(`Already ${status}.`);
             return;
         }
-        updateMany(targets.map((u) => u.id), { status });
+        if (!(await updateMany(targets.map((u) => u.id), { status }))) return;
         if (targets.length === 1) logChange('User Activation', targets[0].name, targets[0].status, status);
         else logChange('User Activation', `${targets.length} users`, 'Mixed', status);
         message.success(`${targets.length === 1 ? targets[0].name : `${targets.length} users`} → ${status}`);

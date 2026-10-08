@@ -4,6 +4,7 @@ import { ROUTES } from '../constants/routes';
 import RequireAuth from '../auth/RequireAuth';
 import AppLayout from '../components/layout/AppLayout';
 import LoginPage from '../pages/auth/LoginPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
 import ActiveUsersPage from '../pages/dashboard/ActiveUsersPage';
 import CreateUserPage from '../pages/users/CreateUserPage';
@@ -56,6 +57,7 @@ const PAGES = {
 const AppRoutes = () => (
     <Routes>
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
             {Object.entries(PAGES).map(([path, Page]) => <Route key={path} path={path} element={<Page />} />)}

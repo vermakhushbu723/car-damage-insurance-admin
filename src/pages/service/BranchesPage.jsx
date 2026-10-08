@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Input, Button, Modal, Form, Select, App, Descriptions, Tooltip } from 'antd';
+import { Input, Button, Modal, Form, Select, App, Descriptions, Tooltip, AutoComplete } from 'antd';
 import { SearchOutlined, EyeOutlined, BankOutlined, UserOutlined, LoadingOutlined, CloseCircleOutlined, EditOutlined } from '@ant-design/icons';
 import DataTable from '../../components/ui/DataTable';
 import StatusTag from '../../components/ui/StatusTag';
 import UserCell from '../../components/ui/UserCell';
 import StatCard from '../../components/ui/StatCard';
 import { COLORS } from '../../constants/theme';
-import { ORGANIZATIONS } from '../../data/seed';
+import { organizationName } from '../../auth/session';
 import { STATES } from '../../data/roles';
 import { useCollection, useLogChange, newId } from '../../store/AdminStore';
 import { formatDate, matchesQuery } from '../../utils/format';
@@ -16,7 +16,7 @@ const CLASSES = ['T20', 'A1', 'B2', 'J6', 'J8'];
 const toOptions = (arr) => arr.map((v) => ({ value: v, label: v }));
 
 /** Add / edit branch form (modal). */
-const BranchModal = ({ open, branch, onClose, onSave, existingNames }) => {
+const BranchModal = ({ open, branch, onClose, onSave, existingNames, organizations, saving }) => {
     const [form] = Form.useForm();
     return (
         <Modal
@@ -25,8 +25,9 @@ const BranchModal = ({ open, branch, onClose, onSave, existingNames }) => {
             onCancel={onClose}
             onOk={() => form.submit()}
             okText={branch ? 'Save Changes' : 'Add Branch'}
+            okButtonProps={{ loading: saving }}
             destroyOnHidden
-            afterOpenChange={(o) => o && form.setFieldsValue(branch ?? { status: 'Pending', organization: ORGANIZATIONS[0] })}
+            afterOpenChange={(o) => o && form.setFieldsValue(branch ?? { status: 'Pending', organization: organizations[0] })}
         >
             <Form form={form} layout="vertical" onFinish={onSave}>
                 <Form.Item
@@ -41,7 +42,7 @@ const BranchModal = ({ open, branch, onClose, onSave, existingNames }) => {
                 </Form.Item>
                 <div className="grid grid-cols-2 gap-x-3">
                     <Form.Item name="organization" label="Organization" rules={[{ required: true, message: 'Select organization' }]}>
-                        <Select options={toOptions(ORGANIZATIONS)} />
+                        <AutoComplete options={toOptions(organizations)} placeholder="Select or type organization" filterOption={(input, o) => o.value.toLowerCase().includes(input.toLowerCase())} />
                     </Form.Item>
                     <Form.Item name="class" label="Class" rules={[{ required: true, message: 'Select class' }]}>
                         <Select placeholder="Select Class" options={toOptions(CLASSES)} />
@@ -92,24 +93,30 @@ const BranchesPage = () => {
     const rows = branches.filter((b) => matchesQuery(b, query, ['name', 'organization', 'city']) && (!statusFilter || b.status === statusFilter));
     const viewBranch = viewing && branches.find((b) => b.id === viewing);
 
-    const save = (values) => {
-        const clean = { ...values, name: values.name.trim() };
+    const [saving, setSaving] = useState(false);
+    // The portal's insurer first, then every organization already used by a branch.
+    const organizations = useMemo(() => [...new Set([organizationName(), ...branches.map((b) => b.organization)].filter(Boolean))], [branches]);
+
+    const save = async (values) => {
+        const clean = { ...values, name: values.name.trim(), organization: values.organization.trim() };
         const editing = formState?.branch;
+        setSaving(true);
+        const saved = editing ? await update(editing.id, clean) : await add({ ...clean, id: newId('BR'), createdAt: new Date().toISOString() });
+        setSaving(false);
+        if (!saved) return;
         if (editing) {
-            update(editing.id, clean);
             if (editing.status !== clean.status) logChange('Branches/Offices', `${clean.name} status`, editing.status, clean.status);
             else logChange('Branches/Offices', `${clean.name} details`, '—', 'Updated');
             message.success('Branch updated');
         } else {
-            add({ ...clean, id: newId('BR'), createdAt: new Date().toISOString() });
             logChange('Branches/Offices', 'Branch Added', '—', `${clean.name} (${clean.organization})`);
             message.success(`${clean.name} added`);
         }
         setFormState(null);
     };
 
-    const changeStatus = (b, status) => {
-        update(b.id, { status });
+    const changeStatus = async (b, status) => {
+        if (!(await update(b.id, { status }))) return;
         logChange('Branches/Offices', `${b.name} status`, b.status, status);
         message.success(`${b.name} → ${status}`);
     };
@@ -154,7 +161,7 @@ const BranchesPage = () => {
 
             <DataTable columns={columns} dataSource={rows} pageSize={8} scrollX={900} locale={{ emptyText: 'No branches found' }} />
 
-            <BranchModal open={!!formState} branch={formState?.branch} onClose={() => setFormState(null)} onSave={save} existingNames={existingNames} />
+            <BranchModal open={!!formState} branch={formState?.branch} onClose={() => setFormState(null)} onSave={save} existingNames={existingNames} organizations={organizations} saving={saving} />
 
             <Modal
                 open={!!viewBranch}

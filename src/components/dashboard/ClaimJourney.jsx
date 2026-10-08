@@ -47,7 +47,7 @@ const ClaimJourney = () => {
     const [mode, setMode] = useState(config.journey.mode);
     const [draft, setDraft] = useState(config.journey.enabled);
 
-    // Pick up "Reset sample data".
+    // Pick up the saved configuration.
     useEffect(() => {
         setMode(config.journey.mode);
         setDraft(config.journey.enabled);
@@ -65,13 +65,13 @@ const ClaimJourney = () => {
         setDraft((d) => ({ ...d, [mode]: { ...d[mode], [stage]: !d[mode][stage] } }));
     };
 
-    const save = () => {
+    const save = async () => {
         const before = config.journey;
+        if (!(await setConfig((c) => ({ ...c, journey: { mode, enabled: draft } })))) return;
         if (before.mode !== mode) logChange('Claim Flow', 'Claim Journey Mode', MODE_LABEL[before.mode], MODE_LABEL[mode]);
         JOURNEY_STAGES[mode].forEach((s) => {
             if (before.enabled[mode][s] !== draft[mode][s]) logChange('Claim Flow', `${s} Stage`, before.enabled[mode][s] ? 'ON' : 'OFF', draft[mode][s] ? 'ON' : 'OFF');
         });
-        setConfig((c) => ({ ...c, journey: { mode, enabled: draft } }));
         message.success('Claim journey configuration saved');
     };
 

@@ -47,7 +47,7 @@ const COLLECTIONS = {
     downloads: readOnly('/downloads'),
 };
 // Single documents, all from GET /settings; saved with PUT /settings/:key.
-const VALUE_KEYS = ['config', 'routing', 'recommendation', 'stageConfig', 'systemUpdate', 'compliance'];
+const VALUE_KEYS = ['config', 'routing', 'recommendation', 'stageConfig', 'systemUpdate', 'compliance', 'allocation'];
 // Measured activity for SaaS Usage / User Report.
 const EXTRA_VALUES = { usage: () => api.get('/reports/usage') };
 

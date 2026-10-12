@@ -37,7 +37,7 @@ const RuleModal = ({ open, rule, templates, onClose, onSave }) => {
         <Modal
             open={open}
             width={680}
-            title={rule ? 'Edit Communication Rule' : 'Create Communication Tool'}
+            title={rule ? 'Edit Communication Rule' : 'Create Communication Rule'}
             onCancel={onClose}
             onOk={() => form.submit()}
             okText={rule ? 'Save Changes' : 'Create'}
@@ -282,7 +282,7 @@ const CommunicationSetupPage = () => {
         <>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h1 className="text-[20px] font-bold m-0" style={{ color: COLORS.primary }}>Stage-wise Communication Matrix</h1>
-                <Button type="primary" size="small" style={{ height: 28 }} onClick={() => setRuleForm({ rule: null })}>+ Create Communication Tool</Button>
+                <Button type="primary" size="small" style={{ height: 28 }} onClick={() => setRuleForm({ rule: null })}>+ Create Communication Rule</Button>
             </div>
 
             <div className="grid gap-2 grid-cols-2 lg:grid-cols-4 mb-2">

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Modal, Form, Input, Select, Switch, App } from 'antd';
+import { Button, Modal, Form, Input, InputNumber, Select, Switch, App } from 'antd';
 import { UserOutlined, CheckOutlined, SmileOutlined, LockOutlined, ExclamationOutlined } from '@ant-design/icons';
 import PageTitle from '../../components/ui/PageTitle';
 import StatCard from '../../components/ui/StatCard';
@@ -10,14 +10,25 @@ import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import { PAYEE_TYPES } from '../../data/modules';
 import { useCollection, useLogChange, useStoreValue, newId } from '../../store/AdminStore';
+import { recommend, criticalScore, CHECKS, RECOMMENDATION_STAGES } from '../../utils/recommendation';
+import { formatNumber } from '../../utils/format';
 
 const RESULTS = ['Auto recommended', 'TCT review', 'Sr. TCT review', 'Hold'];
 const STAGES = ['ILA', 'FLA', 'Payment Recomendation', 'Fraud trigger'];
 const toOptions = (arr) => arr.map((v) => ({ value: v, label: v }));
 
+const checkLabel = (r) => {
+    if (r.check === 'critical-fraud') return 'Critical fraud trigger open';
+    if (r.check === 'amount-at-most') return `Amount ≤ ₹ ${formatNumber(r.threshold)}`;
+    if (r.check === 'amount-above') return `Amount > ₹ ${formatNumber(r.threshold)}`;
+    return 'Not checked automatically';
+};
+
 /**
  * Recommendation Engine -- recommendation rules (Modify -> inline status,
- * Save Matrix -> store) and per-payee payment validation checks.
+ * Save Matrix -> store) and per-payee payment validation checks. Each rule
+ * has a machine check (amount limit / critical fraud); the tiles apply the
+ * rules, top to bottom, to the claims waiting for a recommendation.
  */
 const RecommendationEnginePage = () => {
     const navigate = useNavigate();
@@ -25,6 +36,7 @@ const RecommendationEnginePage = () => {
     const [rec, setRec] = useStoreValue('recommendation');
     const { items: claims } = useCollection('claims');
     const { items: triggers } = useCollection('triggers');
+    const [routing] = useStoreValue('routing');
     const logChange = useLogChange();
 
     const [draft, setDraft] = useState(rec.rules);
@@ -32,18 +44,20 @@ const RecommendationEnginePage = () => {
     const [payee, setPayee] = useState(PAYEE_TYPES[0]);
     const [ruleForm, setRuleForm] = useState(null);
     const [form] = Form.useForm();
+    const checkType = Form.useWatch('check', form);
 
     useEffect(() => setDraft(rec.rules), [rec.rules]);
     const dirty = JSON.stringify(draft) !== JSON.stringify(rec.rules);
 
-    // Live numbers from claims in recommendation-ready stages.
+    // Saved rules applied to the claims waiting for a recommendation (AI ILA / ILA / FLA).
     const stats = useMemo(() => {
-        const pending = claims.filter((c) => ['ILA', 'FLA', 'AI ILA'].includes(c.stage));
-        const belowLimit = rec.rules.find((r) => r.id === 'RR-1')?.status === 'Active';
-        const auto = belowLimit ? pending.filter((c) => c.amount <= 50000).length : 0;
-        const exception = triggers.filter((t) => ['Open', 'Escalated'].includes(t.status)).length;
-        return { pending: pending.length, auto, manual: Math.max(0, pending.length - auto), exception };
-    }, [claims, triggers, rec.rules]);
+        const pending = claims.filter((c) => RECOMMENDATION_STAGES.includes(c.stage));
+        const critical = criticalScore(routing.matrix);
+        const results = pending.map((c) => recommend(c, rec.rules, { triggers, critical })?.result);
+        const auto = results.filter((r) => r === 'Auto recommended').length;
+        const exception = results.filter((r) => r === 'Hold').length;
+        return { pending: pending.length, auto, manual: pending.length - auto - exception, exception };
+    }, [claims, triggers, rec.rules, routing.matrix]);
 
     const saveMatrix = async () => {
         if (!dirty) {
@@ -62,7 +76,8 @@ const RecommendationEnginePage = () => {
         message.success('Recommendation matrix saved');
     };
 
-    const saveRule = (values) => {
+    const saveRule = (raw) => {
+        const values = raw.check === 'critical-fraud' ? { ...raw, threshold: undefined } : raw;
         const editing = ruleForm?.rule;
         if (editing) setDraft((l) => l.map((r) => (r.id === editing.id ? { ...r, ...values } : r)));
         else setDraft((l) => [...l, { id: newId('RR'), status: 'Active', ...values }]);
@@ -111,7 +126,10 @@ const RecommendationEnginePage = () => {
                             {draft.map((r) => (
                                 <tr key={r.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
                                     <td className="px-3 py-2">{r.rule}</td>
-                                    <td className="px-3 py-2">{r.condition}</td>
+                                    <td className="px-3 py-2">
+                                        {r.condition}
+                                        <div className="text-[11px]" style={{ color: COLORS.textMuted }}>{checkLabel(r)}</div>
+                                    </td>
                                     <td className="px-3 py-2">{r.stage}</td>
                                     <td className="px-3 py-2">{r.result}</td>
                                     <td className="px-3 py-2">
@@ -161,12 +179,16 @@ const RecommendationEnginePage = () => {
                 onOk={() => form.submit()}
                 okText="Apply"
                 destroyOnHidden
-                afterOpenChange={(o) => o && form.setFieldsValue(ruleForm?.rule ?? { stage: STAGES[0], result: RESULTS[0] })}
+                afterOpenChange={(o) => o && form.setFieldsValue(ruleForm?.rule ?? { stage: STAGES[0], result: RESULTS[0], check: 'amount-at-most' })}
             >
                 <Form form={form} layout="vertical" onFinish={saveRule}>
                     <Form.Item name="rule" label="Rule" rules={[{ required: true, message: 'Enter rule name' }]}><Input /></Form.Item>
                     <Form.Item name="condition" label="Condition" rules={[{ required: true, message: 'Enter condition' }]}><Input placeholder="e.g. Amount 50K" /></Form.Item>
                     <div className="grid grid-cols-2 gap-x-3">
+                        <Form.Item name="check" label="Check" rules={[{ required: true, message: 'Pick what the rule checks' }]}><Select options={CHECKS} /></Form.Item>
+                        <Form.Item name="threshold" label="Amount (₹)" rules={[{ required: checkType !== 'critical-fraud', message: 'Enter the amount' }]}>
+                            <InputNumber className="w-full" min={0} step={5000} disabled={checkType === 'critical-fraud'} />
+                        </Form.Item>
                         <Form.Item name="stage" label="Stage" rules={[{ required: true }]}><Select options={toOptions(STAGES)} /></Form.Item>
                         <Form.Item name="result" label="Result" rules={[{ required: true }]}><Select options={toOptions(RESULTS)} /></Form.Item>
                     </div>

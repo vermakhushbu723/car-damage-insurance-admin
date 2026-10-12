@@ -34,7 +34,7 @@ const FraudRoutingPage = () => {
         active: open.length,
         autoRouted: routing.stats.autoRouted + triggers.length,
         critical: open.filter((t) => t.score >= 50).length,
-        audit: open.filter((t) => t.route === 'Audit').length,
+        audit: open.filter((t) => /audit/i.test(`${t.route} ${t.reviewer}`)).length,
         cleared: routing.stats.autoCleared + triggers.filter((t) => t.status === 'Cleared').length,
     };
 

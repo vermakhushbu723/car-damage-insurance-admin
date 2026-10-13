@@ -21,6 +21,7 @@ import {
     DownloadOutlined,
     AuditOutlined,
     SettingOutlined,
+    CarOutlined,
 } from '@ant-design/icons';
 import { ROUTES } from './routes';
 
@@ -66,6 +67,12 @@ export const SIDEBAR_GROUPS = [
             { key: 'fraud-routing', label: 'Fraud Routing', icon: SafetyCertificateOutlined, path: ROUTES.FRAUD_ROUTING },
             { key: 'fraud-trigger-rules', label: 'Fraud Triggers Rules', icon: ThunderboltOutlined, path: ROUTES.FRAUD_TRIGGER_RULES },
             { key: 'trigger-history', label: 'Trigger History', icon: HistoryOutlined, path: ROUTES.TRIGGER_HISTORY },
+        ],
+    },
+    {
+        title: 'PRE-INSPECTION',
+        items: [
+            { key: 'pre-inspections', label: 'Pre-Inspections', icon: CarOutlined, path: ROUTES.PRE_INSPECTIONS },
         ],
     },
     {

@@ -25,6 +25,8 @@ export const ROUTES = {
     FRAUD_TRIGGER_RULES: '/fraud-trigger-rules',
     TRIGGER_HISTORY: '/trigger-history',
 
+    PRE_INSPECTIONS: '/pre-inspections',
+
     CLAIM_REPORT: '/reports/claims',
     USER_REPORT: '/reports/users',
     SAAS_USAGE: '/reports/saas-usage',

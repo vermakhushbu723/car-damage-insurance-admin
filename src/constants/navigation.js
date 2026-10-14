@@ -22,6 +22,7 @@ import {
     AuditOutlined,
     SettingOutlined,
     CarOutlined,
+    InboxOutlined,
 } from '@ant-design/icons';
 import { ROUTES } from './routes';
 
@@ -73,6 +74,12 @@ export const SIDEBAR_GROUPS = [
         title: 'PRE-INSPECTION',
         items: [
             { key: 'pre-inspections', label: 'Pre-Inspections', icon: CarOutlined, path: ROUTES.PRE_INSPECTIONS },
+        ],
+    },
+    {
+        title: 'IBIMA ASSIST APP',
+        items: [
+            { key: 'enquiries', label: 'Enquiries', icon: InboxOutlined, path: ROUTES.ENQUIRIES },
         ],
     },
     {

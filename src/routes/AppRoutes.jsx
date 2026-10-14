@@ -27,6 +27,7 @@ import SaasUsagePage from '../pages/reports/SaasUsagePage';
 import DataDownloadPage from '../pages/reports/DataDownloadPage';
 import AuditLogsPage from '../pages/system/AuditLogsPage';
 import PreInspectionsPage from '../pages/preinspection/PreInspectionsPage';
+import EnquiriesPage from '../pages/enquiries/EnquiriesPage';
 import SystemSettingsPage from '../pages/system/SystemSettingsPage';
 
 // One page per sidebar item (constants/navigation.js).
@@ -52,6 +53,7 @@ const PAGES = {
     [ROUTES.SAAS_USAGE]: SaasUsagePage,
     [ROUTES.DATA_DOWNLOAD]: DataDownloadPage,
     [ROUTES.PRE_INSPECTIONS]: PreInspectionsPage,
+    [ROUTES.ENQUIRIES]: EnquiriesPage,
     [ROUTES.AUDIT_LOGS]: AuditLogsPage,
     [ROUTES.SYSTEM_SETTINGS]: SystemSettingsPage,
 };

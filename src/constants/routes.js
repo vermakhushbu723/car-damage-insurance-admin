@@ -26,6 +26,7 @@ export const ROUTES = {
     TRIGGER_HISTORY: '/trigger-history',
 
     PRE_INSPECTIONS: '/pre-inspections',
+    ENQUIRIES: '/enquiries',
 
     CLAIM_REPORT: '/reports/claims',
     USER_REPORT: '/reports/users',

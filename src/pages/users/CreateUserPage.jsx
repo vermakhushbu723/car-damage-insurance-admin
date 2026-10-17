@@ -461,16 +461,31 @@ const CreateUserPage = () => {
                                 >
                                     <Input placeholder="User ID" />
                                 </Form.Item>
-                                <Form.Item label="Temp password (AG)">
-                                    <div className="flex gap-2">
-                                        <Form.Item name="tempPassword" noStyle>
-                                            <Input.Password readOnly />
-                                        </Form.Item>
-                                        <Tooltip title="Generate new password">
-                                            <Button icon={<ReloadOutlined />} onClick={() => form.setFieldValue('tempPassword', generatePassword())} />
-                                        </Tooltip>
-                                    </div>
-                                </Form.Item>
+                                {editing ? (
+                                    <Form.Item label="Password" extra="To give this user a new password, use Password Reset.">
+                                        <Input value="••••••••" disabled />
+                                    </Form.Item>
+                                ) : (
+                                    // Auto-generated, shown in plain text and editable (same rule as the API).
+                                    <Form.Item label="Temp password (AG)" required>
+                                        <div className="flex gap-2">
+                                            <Form.Item
+                                                name="tempPassword"
+                                                noStyle
+                                                rules={[
+                                                    { required: true, message: 'Enter a temp password' },
+                                                    { min: 8, max: 128, message: 'Use 8 to 128 characters' },
+                                                    { pattern: /^(?=.*[A-Za-z])(?=.*\d)/, message: 'Use letters and numbers' },
+                                                ]}
+                                            >
+                                                <Input placeholder="Temp password" autoComplete="off" spellCheck={false} />
+                                            </Form.Item>
+                                            <Tooltip title="Generate new password">
+                                                <Button icon={<ReloadOutlined />} onClick={() => form.setFieldValue('tempPassword', generatePassword())} aria-label="Generate new password" />
+                                            </Tooltip>
+                                        </div>
+                                    </Form.Item>
+                                )}
                             </div>
                         </Grid>
                     </Section>

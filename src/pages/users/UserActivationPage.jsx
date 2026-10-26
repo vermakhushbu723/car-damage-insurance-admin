@@ -51,7 +51,7 @@ const UserActivationPage = () => {
     const filtered = useMemo(() => users.filter((u) => (
         matchesQuery(u, filters.q, ['name', 'userId', 'email', 'employeeId', 'organization'])
         && (filters.org === 'all' || u.organization === filters.org)
-        && (filters.role === 'all' || u.roleKey === filters.role)
+        && (filters.role === 'all' || (u.roleKeys ?? [u.roleKey]).includes(filters.role))
         && (filters.status === 'all' || u.status === filters.status)
     )), [users, filters]);
 
@@ -91,7 +91,7 @@ const UserActivationPage = () => {
     });
 
     const columns = [
-        { title: 'Users Name', render: (_, u) => <UserCell name={u.name} sub={`${roles.byKey[u.roleKey]?.name ?? u.roleKey} · ${u.userId}`} />, width: 230 },
+        { title: 'Users Name', render: (_, u) => <UserCell name={u.name} sub={`${(u.roleKeys ?? [u.roleKey]).map((k) => roles.byKey[k]?.name ?? k).join(', ')} · ${u.userId}`} />, width: 230 },
         { title: 'Organization', dataIndex: 'organization' },
         { title: 'Staus', render: (_, u) => <StatusTag status={u.status} minWidth={110} />, align: 'center' },
         { title: 'Created On', dataIndex: 'createdAt', render: formatDateTime, align: 'center', width: 180 },

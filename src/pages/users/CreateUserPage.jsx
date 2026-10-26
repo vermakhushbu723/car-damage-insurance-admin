@@ -128,6 +128,7 @@ const toOptions = (arr) => arr.map((v) => ({ value: v, label: v }));
 /** Turns the stored user into form values (dates -> dayjs). */
 const userToForm = (u) => ({
     ...u,
+    roleKeys: u.roleKeys?.length ? u.roleKeys : [u.roleKey].filter(Boolean),
     dateOfJoining: u.dateOfJoining ? dayjs(u.dateOfJoining) : null,
     effectiveFrom: u.effectiveFrom ? dayjs(u.effectiveFrom) : null,
     extra: u.extra ?? {},
@@ -136,6 +137,7 @@ const userToForm = (u) => ({
 const blankForm = (roleKey) => ({
     accountType: 'Internal',
     roleKey,
+    roleKeys: roleKey ? [roleKey] : [],
     country: 'India',
     zones: [],
     platform: 'web',
@@ -161,6 +163,7 @@ const CreateUserPage = () => {
     const [roleForm] = Form.useForm();
 
     const roleKey = Form.useWatch('roleKey', form);
+    const roleKeys = Form.useWatch('roleKeys', form);
     const accountType = Form.useWatch('accountType', form);
     const watchedZones = Form.useWatch('zones', form);
     const role = roles.byKey[roleKey];
@@ -260,14 +263,14 @@ const CreateUserPage = () => {
             effectiveFrom: values.effectiveFrom?.format('YYYY-MM-DD') ?? null,
             extra: values.extra ?? {},
         };
-        const roleName = role?.name ?? values.roleKey;
+        const roleName = (values.roleKeys ?? [values.roleKey]).map((k) => roles.byKey[k]?.name ?? k).join(', ');
 
         if (editing) {
             setSaving(true);
             const saved = await update(editing.id, record);
             setSaving(false);
             if (!saved) return;
-            logChange('Users & Roles', 'User Modified', `${editing.name} (${roles.byKey[editing.roleKey]?.name ?? ''}, ${editing.status})`, `${record.name} (${roleName}, ${record.status})`);
+            logChange('Users & Roles', 'User Modified', `${editing.name} (${(editing.roleKeys ?? [editing.roleKey]).map((k) => roles.byKey[k]?.name ?? k).join(', ')}, ${editing.status})`, `${record.name} (${roleName}, ${record.status})`);
             message.success(`${record.name} updated`);
             resetToNew();
             return;
@@ -287,6 +290,7 @@ const CreateUserPage = () => {
                     <div><b>Name:</b> {user.name}</div>
                     <div><b>User ID:</b> {user.userId}</div>
                     <div><b>Temp password:</b> <code>{user.tempPassword}</code></div>
+                    <div><b>Role(s):</b> {roleName}</div>
                     <div><b>Status:</b> {user.status}</div>
                     <div className="mt-2 text-slate-500">The user now appears in User Activation, Password Reset and the dashboard counts.</div>
                 </div>
@@ -321,7 +325,9 @@ const CreateUserPage = () => {
         const newRole = await roles.add({ name, level: values.level, copyFrom: values.copyFrom, permissions: undefined });
         if (!newRole) return;
         logChange('Users & Roles', 'Role Added', '—', `${name} (L${values.level})`);
-        form.setFieldValue('roleKey', newRole.key);
+        const picked = form.getFieldValue('roleKeys') ?? [];
+        form.setFieldValue('roleKeys', [...picked, newRole.key]);
+        if (!picked.length) form.setFieldValue('roleKey', newRole.key);
         setRoleModalOpen(false);
         roleForm.resetFields();
         message.success(`Role "${name}" added — set its permissions in Roles & Permissions`);
@@ -358,12 +364,25 @@ const CreateUserPage = () => {
                             <Button type="primary" icon={<PlusSquareOutlined />} style={{ minWidth: 120 }} onClick={() => setRoleModalOpen(true)}>Add Role</Button>
                         </div>
                         <Grid>
-                            <Form.Item name="roleKey" label="Role" rules={req('Select a role')}>
+                            {/* A user can hold several roles; the first one picked is the primary
+                                role (role level, reporting manager, extra fields). On the portals
+                                the user switches between them. */}
+                            <Form.Item name="roleKey" hidden><Input /></Form.Item>
+                            <Form.Item
+                                name="roleKeys"
+                                label="Role(s)"
+                                rules={[{ required: true, type: 'array', min: 1, message: 'Select at least one role' }]}
+                                extra={roleKeys?.length > 1 ? `Primary role: ${roles.byKey[roleKeys[0]]?.name ?? roleKeys[0]} · user can switch roles after login` : undefined}
+                            >
                                 <Select
+                                    mode="multiple"
                                     placeholder="National Manager/RM/SM/CSM/Call Center/Internal Surveyor/"
                                     options={roleOptions}
                                     showSearch={{ optionFilterProp: 'label' }}
-                                    onChange={() => form.setFieldValue('reportingManagerId', undefined)}
+                                    onChange={(keys) => {
+                                        if (keys[0] !== form.getFieldValue('roleKey')) form.setFieldValue('reportingManagerId', undefined);
+                                        form.setFieldValue('roleKey', keys[0]);
+                                    }}
                                 />
                             </Form.Item>
                             <Form.Item name="reportingManagerId" label="Reporting manager" rules={req('Select reporting manager')}>

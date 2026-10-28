@@ -42,7 +42,7 @@ const CARD_LABELS = [
 ];
 
 /**
- * SaaS Report Usage -- measured by admin-service (GET /reports/usage):
+ * Service Provider Report Usage -- measured by admin-service (GET /reports/usage):
  * sign-ins, API requests per module, storage, plus a region-wise claim
  * breakdown from the claims pushed by the claim systems.
  */
@@ -75,7 +75,7 @@ const SaasUsagePage = () => {
 
     return (
         <>
-            <PageTitle title="SaaS Report Usage" />
+            <PageTitle title="Service Provider Report Usage" />
 
             <div className="grid gap-2 grid-cols-2 md:grid-cols-3 xl:grid-cols-6 mb-3">
                 {cards.map((c) => <StatCard key={c.key} label={c.label} value={c.value} icon={CARD_META[c.key].icon} tone={CARD_META[c.key].tone} trend={c.trend} trendDown={c.trendDown} trendLabel="Vs Last 30 Days" />)}

@@ -41,6 +41,8 @@ export const STATUS_STYLES = {
     Ready: { bg: '#D1EEDD', color: '#1E8E4E' },
     'Up to Date': { bg: '#D1EEDD', color: '#1E8E4E' },
     ILA: { bg: '#D1EEDD', color: '#1E8E4E' },
+    Completed: { bg: '#D1EEDD', color: '#1E8E4E' },
+    Submitted: { bg: '#D1EEDD', color: '#1E8E4E' },
     Pending: { bg: '#FDEBC8', color: '#E89A0C' },
     Warning: { bg: '#FDEBC8', color: '#E89A0C' },
     'Approval Log': { bg: '#FDEBC8', color: '#E89A0C' },

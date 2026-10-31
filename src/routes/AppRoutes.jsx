@@ -28,6 +28,7 @@ import DataDownloadPage from '../pages/reports/DataDownloadPage';
 import AuditLogsPage from '../pages/system/AuditLogsPage';
 import PreInspectionsPage from '../pages/preinspection/PreInspectionsPage';
 import EnquiriesPage from '../pages/enquiries/EnquiriesPage';
+import DocumentsDmsPage from '../pages/documents/DocumentsDmsPage';
 import SystemSettingsPage from '../pages/system/SystemSettingsPage';
 
 // One page per sidebar item (constants/navigation.js).
@@ -54,6 +55,7 @@ const PAGES = {
     [ROUTES.DATA_DOWNLOAD]: DataDownloadPage,
     [ROUTES.PRE_INSPECTIONS]: PreInspectionsPage,
     [ROUTES.ENQUIRIES]: EnquiriesPage,
+    [ROUTES.DOCUMENTS_DMS]: DocumentsDmsPage,
     [ROUTES.AUDIT_LOGS]: AuditLogsPage,
     [ROUTES.SYSTEM_SETTINGS]: SystemSettingsPage,
 };

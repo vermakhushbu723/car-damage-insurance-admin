@@ -90,3 +90,34 @@ export async function downloadFromApi(path, fileName) {
     URL.revokeObjectURL(url);
     return blob.size;
 }
+
+/**
+ * PUT one file as the raw request body (Documents DMS uploads):
+ * Content-Type = the file's type, X-File-Name = its original name.
+ */
+export async function uploadFile(path, file) {
+    const token = getToken();
+    let res;
+    try {
+        res = await fetch(`${API_BASE}${path}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': file.type || 'application/octet-stream',
+                'X-File-Name': encodeURIComponent(file.name || 'document'),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: file,
+        });
+    } catch {
+        throw new ApiError(0, 'Cannot reach the server. Check your internet connection and try again.');
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+        if (res.status === 401 && token) {
+            clearSession();
+            if (!window.location.pathname.startsWith('/login')) window.location.replace('/login?expired=1');
+        }
+        throw new ApiError(res.status, data?.detail || `Upload failed (${res.status}).`, data);
+    }
+    return data;
+}

@@ -3,11 +3,13 @@ import { Input, Select, Button, Drawer, Image, Spin, Empty, App, Descriptions, T
 import {
     SearchOutlined, FileSearchOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, ReloadOutlined, EnvironmentOutlined, PlusOutlined,
 } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import PageTitle from '../../components/ui/PageTitle';
 import StatCard from '../../components/ui/StatCard';
 import DataTable from '../../components/ui/DataTable';
 import StatusTag from '../../components/ui/StatusTag';
 import { COLORS } from '../../constants/theme';
+import { ROUTES } from '../../constants/routes';
 import { api } from '../../api/client';
 import { useCollection, useLogChange, useRoles } from '../../store/AdminStore';
 import { formatDateTime, matchesQuery } from '../../utils/format';
@@ -31,7 +33,7 @@ const SLOT_LABELS = {
     dashboard: 'Dashboard', walkaround: 'Walk-around video', customer: 'Customer / Representative', inspector: 'Inspection agent', bill: 'Repair bill', main: 'Reinspection photo',
     policy_copy: 'Previous policy copy', puc: 'PUC', rc: 'Registration Certificate', aadhar: 'Aadhar Card', pan: 'Pan Card', others: 'Other document',
 };
-const slotLabel = (slot) => {
+export const slotLabel = (slot) => {
     if (SLOT_LABELS[slot]) return SLOT_LABELS[slot];
     const [doc, ...rest] = slot.split('_');
     if (SLOT_LABELS[doc]) return `${SLOT_LABELS[doc]} · ${rest.join(' ')}`;
@@ -57,14 +59,14 @@ const Section = ({ title, children, extra }) => (
     </section>
 );
 
-const Gps = ({ m }) => (m.latitude != null ? (
+export const Gps = ({ m }) => (m.latitude != null ? (
     <a className="text-[10.5px]" href={`https://maps.google.com/?q=${m.latitude},${m.longitude}`} target="_blank" rel="noreferrer">
         <EnvironmentOutlined /> {m.latitude.toFixed(5)}, {m.longitude.toFixed(5)}
     </a>
 ) : null);
 
 /** Photo grid with captions (label, GPS, time); click to preview. */
-const PhotoGrid = ({ items }) => (items.length ? (
+export const PhotoGrid = ({ items }) => (items.length ? (
     <Image.PreviewGroup>
         <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
             {items.map((m) => (
@@ -166,7 +168,12 @@ const InspectionDrawer = ({ id, onClose, onReviewed, onCancelled }) => {
 
     return (
         <Drawer open={!!id} onClose={onClose} size={820} title={id ? `Pre-Inspection ${id}` : ''} destroyOnHidden
-            extra={item && <StatusTag status={STATUS_LABEL[item.status]} />}
+            extra={item && (
+                <span className="flex items-center gap-2">
+                    <Link to={`${ROUTES.DOCUMENTS_DMS}?type=inspection&id=${encodeURIComponent(item.id)}`} className="text-[12px] font-semibold">Open in DMS</Link>
+                    <StatusTag status={STATUS_LABEL[item.status]} />
+                </span>
+            )}
         >
             {error && <Empty description={error} />}
             {!item && !error && <div className="flex justify-center py-16"><Spin /></div>}

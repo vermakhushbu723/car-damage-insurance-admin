@@ -23,6 +23,7 @@ import {
     SettingOutlined,
     CarOutlined,
     InboxOutlined,
+    FolderOpenOutlined,
 } from '@ant-design/icons';
 import { ROUTES } from './routes';
 
@@ -80,6 +81,12 @@ export const SIDEBAR_GROUPS = [
         title: 'IBIMA ASSIST APP',
         items: [
             { key: 'enquiries', label: 'Enquiries', icon: InboxOutlined, path: ROUTES.ENQUIRIES },
+        ],
+    },
+    {
+        title: 'DOCUMENTS',
+        items: [
+            { key: 'documents-dms', label: 'Documents DMS', icon: FolderOpenOutlined, path: ROUTES.DOCUMENTS_DMS },
         ],
     },
     {

@@ -27,6 +27,7 @@ export const ROUTES = {
 
     PRE_INSPECTIONS: '/pre-inspections',
     ENQUIRIES: '/enquiries',
+    DOCUMENTS_DMS: '/documents-dms',
 
     CLAIM_REPORT: '/reports/claims',
     USER_REPORT: '/reports/users',

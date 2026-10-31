@@ -3,11 +3,13 @@ import { Input, Select, Button, Drawer, Empty, App, Descriptions } from 'antd';
 import {
     SearchOutlined, InboxOutlined, BellOutlined, PhoneOutlined, StarOutlined, CheckCircleOutlined, ReloadOutlined, MailOutlined,
 } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import PageTitle from '../../components/ui/PageTitle';
 import StatCard from '../../components/ui/StatCard';
 import DataTable from '../../components/ui/DataTable';
 import StatusTag from '../../components/ui/StatusTag';
 import { COLORS } from '../../constants/theme';
+import { ROUTES } from '../../constants/routes';
 import { api } from '../../api/client';
 import { useLogChange } from '../../store/AdminStore';
 import { formatDateTime, matchesQuery } from '../../utils/format';
@@ -83,7 +85,12 @@ const EnquiryDrawer = ({ enquiry, onClose, onSaved, onDeleted }) => {
 
     return (
         <Drawer open={!!enquiry} onClose={onClose} size={620} title={enquiry ? `Enquiry ${enquiry.id}` : ''} destroyOnHidden
-            extra={enquiry && <StatusTag status={STATUS[enquiry.status]} />}
+            extra={enquiry && (
+                <span className="flex items-center gap-2">
+                    <Link to={`${ROUTES.DOCUMENTS_DMS}?type=enquiry&id=${encodeURIComponent(enquiry.id)}`} className="text-[12px] font-semibold">Open in DMS</Link>
+                    <StatusTag status={STATUS[enquiry.status]} />
+                </span>
+            )}
         >
             {enquiry && (
                 <div className="text-[12.5px] flex flex-col gap-3">

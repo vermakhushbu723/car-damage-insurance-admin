@@ -1,9 +1,13 @@
 import { getToken, clearSession } from '../auth/session';
+import { loginUrl } from '../portal';
 
 // Same-origin by default: Vite (dev/preview) and nginx (production) proxy
 // /api to admin-service. Override with VITE_API_BASE_URL if the API ever
 // lives on another host.
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+
+/** File links the API returns ("/api/v1/media/...") under this portal's API base (/apps/admin/api/v1 on the website). */
+export const apiLink = (url) => (typeof url === 'string' && url.startsWith('/api/v1/') ? `${API_BASE}${url.slice('/api/v1'.length)}` : url);
 
 /** Error thrown for any non-2xx response; `.message` is the server's readable reason. */
 export class ApiError extends Error {
@@ -45,7 +49,7 @@ export async function request(method, path, body, { auth = true } = {}) {
     if (!res.ok) {
         if (res.status === 401 && auth && token) {
             clearSession();
-            if (!window.location.pathname.startsWith('/login')) window.location.replace('/login?expired=1');
+            if (!/\/login$/.test(window.location.pathname)) window.location.replace(loginUrl({ expired: true }));
         }
         const message = data?.detail || (res.status >= 500 ? 'Server error, please try again.' : `Request failed (${res.status}).`);
         throw new ApiError(res.status, message, data);
@@ -115,7 +119,7 @@ export async function uploadFile(path, file) {
     if (!res.ok) {
         if (res.status === 401 && token) {
             clearSession();
-            if (!window.location.pathname.startsWith('/login')) window.location.replace('/login?expired=1');
+            if (!/\/login$/.test(window.location.pathname)) window.location.replace(loginUrl({ expired: true }));
         }
         throw new ApiError(res.status, data?.detail || `Upload failed (${res.status}).`, data);
     }

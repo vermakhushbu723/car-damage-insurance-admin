@@ -3,6 +3,7 @@ import { BrowserRouter, useLocation } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import { cleanLabel, navItemFor } from './constants/navigation';
 import { ROUTES } from './constants/routes';
+import { BASENAME } from './portal';
 
 const APP_NAME = 'IBima Assist Admin';
 
@@ -18,7 +19,7 @@ const DocumentTitle = () => {
 };
 
 const App = () => (
-    <BrowserRouter>
+    <BrowserRouter basename={BASENAME}>
         <DocumentTitle />
         <AppRoutes />
     </BrowserRouter>

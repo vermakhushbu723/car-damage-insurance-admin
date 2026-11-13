@@ -10,7 +10,7 @@ import PageTitle from '../../components/ui/PageTitle';
 import StatusTag from '../../components/ui/StatusTag';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
-import { api, uploadFile } from '../../api/client';
+import { api, apiLink, uploadFile } from '../../api/client';
 import { useLogChange } from '../../store/AdminStore';
 import { formatDateTime } from '../../utils/format';
 import { PhotoGrid, Gps, slotLabel } from '../preinspection/PreInspectionsPage';
@@ -297,7 +297,7 @@ const DocumentsDmsPage = () => {
                 )}
                 {uploaded ? (
                     <div className="grid grid-cols-2 gap-1.5">
-                        <Button size="small" icon={<DownloadOutlined />} href={files[0].url} target="_blank" style={softBtn}>Download</Button>
+                        <Button size="small" icon={<DownloadOutlined />} href={apiLink(files[0].url)} target="_blank" style={softBtn}>Download</Button>
                         <Button size="small" icon={<SyncOutlined />} loading={busy === files[0].id} onClick={() => pickFor(t.key, files[0])} style={softBtn}>Replace</Button>
                     </div>
                 ) : (
@@ -345,7 +345,7 @@ const DocumentsDmsPage = () => {
                                 <div className="mt-2 flex items-center gap-2">
                                     <span className="h-1.5 flex-1 rounded-full bg-emerald-500" />
                                     <span className="text-[11px] font-semibold">100%</span>
-                                    <Button size="small" type="text" icon={<DownloadOutlined />} href={d.url} target="_blank" aria-label={`Download ${d.name}`} />
+                                    <Button size="small" type="text" icon={<DownloadOutlined />} href={apiLink(d.url)} target="_blank" aria-label={`Download ${d.name}`} />
                                     <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => remove(d)} aria-label={`Remove ${d.name}`} />
                                 </div>
                             </div>
@@ -365,7 +365,7 @@ const DocumentsDmsPage = () => {
         <div className="flex flex-col gap-3">
             <Panel title={`Vehicle Photos (${ofKind('photo').length})`} sub="Captured in the Pre-Inspection Agent app (time and GPS on each photo)"><PhotoGrid items={ofKind('photo')} /></Panel>
             <Panel title="Walk-around Video">
-                {video ? <video src={video.url} controls preload="metadata" className="w-full rounded-md" style={{ maxHeight: 360, background: '#000' }} /> : <span style={{ color: COLORS.textMuted }}>No video uploaded.</span>}
+                {video ? <video src={apiLink(video.url)} controls preload="metadata" className="w-full rounded-md" style={{ maxHeight: 360, background: '#000' }} /> : <span style={{ color: COLORS.textMuted }}>No video uploaded.</span>}
             </Panel>
             {(ofKind('reinspection').length > 0 || ofKind('repair').length > 0) && (
                 <Panel title="Repair & Reinspection"><PhotoGrid items={[...ofKind('reinspection'), ...ofKind('repair')]} /></Panel>

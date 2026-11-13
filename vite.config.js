@@ -9,7 +9,9 @@ const apiProxy = {
     '/api': { target: process.env.ADMIN_API_TARGET || 'http://127.0.0.1:8040', changeOrigin: false },
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+    // Built for the website domain: assets + API under /apps/admin/ (see src/portal.js).
+    base: command === 'build' ? '/apps/admin/' : '/',
     plugins: [react(), tailwindcss()],
     server: {
         port: 5200,
@@ -20,4 +22,4 @@ export default defineConfig({
         port: 4200,
         proxy: apiProxy,
     },
-})
+}))

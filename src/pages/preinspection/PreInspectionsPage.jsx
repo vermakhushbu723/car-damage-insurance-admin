@@ -10,7 +10,7 @@ import DataTable from '../../components/ui/DataTable';
 import StatusTag from '../../components/ui/StatusTag';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
-import { api } from '../../api/client';
+import { api, apiLink } from '../../api/client';
 import { useCollection, useLogChange, useRoles } from '../../store/AdminStore';
 import { formatDateTime, matchesQuery } from '../../utils/format';
 
@@ -72,8 +72,8 @@ export const PhotoGrid = ({ items }) => (items.length ? (
             {items.map((m) => (
                 <figure key={m.id} className="m-0 rounded-md overflow-hidden" style={{ border: `1px solid ${COLORS.border}` }}>
                     {m.mime === 'application/pdf'
-                        ? <a href={m.url} target="_blank" rel="noreferrer" className="flex items-center justify-center text-[12px]" style={{ height: 110 }}>Open PDF</a>
-                        : <Image src={m.url} alt={slotLabel(m.slot)} height={110} width="100%" style={{ objectFit: 'cover' }} />}
+                        ? <a href={apiLink(m.url)} target="_blank" rel="noreferrer" className="flex items-center justify-center text-[12px]" style={{ height: 110 }}>Open PDF</a>
+                        : <Image src={apiLink(m.url)} alt={slotLabel(m.slot)} height={110} width="100%" style={{ objectFit: 'cover' }} />}
                     <figcaption className="px-1.5 py-1 text-[11px] leading-tight">
                         <div className="font-medium truncate">{slotLabel(m.slot)}</div>
                         <div style={{ color: COLORS.textMuted }}>{formatDateTime(m.capturedAt ?? m.uploadedAt)}</div>
@@ -204,7 +204,7 @@ const InspectionDrawer = ({ id, onClose, onReviewed, onCancelled }) => {
                     <Section title={`Vehicle Photos (${ofKind('photo').length})`}><PhotoGrid items={ofKind('photo')} /></Section>
 
                     <Section title="Walk-around Video">
-                        {video ? <video src={video.url} controls preload="metadata" className="w-full rounded-md" style={{ maxHeight: 360, background: '#000' }} /> : <span style={{ color: COLORS.textMuted }}>No video uploaded.</span>}
+                        {video ? <video src={apiLink(video.url)} controls preload="metadata" className="w-full rounded-md" style={{ maxHeight: 360, background: '#000' }} /> : <span style={{ color: COLORS.textMuted }}>No video uploaded.</span>}
                     </Section>
 
                     <Section title={`Documents (${ofKind('document').length})`}><PhotoGrid items={ofKind('document')} /></Section>

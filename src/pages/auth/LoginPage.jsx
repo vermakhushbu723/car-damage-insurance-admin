@@ -7,6 +7,7 @@ import ibimaLogo from '../../assets/images/ibimaLogo.svg';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import { login, getSession } from '../../auth/session';
+import { ON_SITE, loginUrl } from '../../portal';
 
 const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 const generateCaptcha = (length = 5) =>
@@ -89,6 +90,8 @@ const LoginPage = () => {
     // Already signed in -> straight to the dashboard. Bounced here by an expired session -> say so.
     useEffect(() => {
         if (getSession()) navigate(ROUTES.DASHBOARD, { replace: true });
+        // On the website, signing in happens on the common login page.
+        else if (ON_SITE) window.location.replace(loginUrl({ expired: !!new URLSearchParams(location.search).get('expired') }));
         else if (new URLSearchParams(location.search).get('expired')) setError('Your session has ended. Please sign in again.');
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -1,9 +1,8 @@
 // Production: this portal lives on the website domain at /<role>/admin/<id>/
 // (e.g. /state-manager/callcenter/USR-1004/) and signs in through the website's
-// common login (/login?type=admin). Its assets and API are served from
+// common login (/login). Its assets and API are served from
 // /apps/admin/ (nginx). In development it still runs at / as before.
 export const PORTAL = 'admin'
-const LOGIN_TYPE = 'admin'
 /** Path segment in place of the user id for pages that need no sign-in (reset password). */
 export const PUBLIC_ID = 'account'
 export const ON_SITE = import.meta.env.PROD
@@ -17,7 +16,7 @@ export const portalBase = (role, id) => `/${encodeURIComponent(role)}/${PORTAL}/
 
 /** The sign-in page: the website's common login in production. */
 export const loginUrl = ({ expired = false } = {}) =>
-    ON_SITE ? `/login?type=${LOGIN_TYPE}${expired ? '&expired=1' : ''}` : `/login${expired ? '?expired=1' : ''}`
+    `/login${expired ? '?expired=1' : ''}`
 
 /**
  * Runs before the app renders. `who` = { role, id } of the stored session, or null.
@@ -25,7 +24,8 @@ export const loginUrl = ({ expired = false } = {}) =>
  * user (wrong role / id in the address). Returns false while navigating away.
  */
 export function enterPortal(who, landing = '/') {
-    if (!ON_SITE || match?.[2] === PUBLIC_ID) return true
+    // The common login itself (/login) needs no session.
+    if (!ON_SITE || match?.[2] === PUBLIC_ID || window.location.pathname === '/login') return true
     if (!who) {
         window.location.replace(loginUrl())
         return false

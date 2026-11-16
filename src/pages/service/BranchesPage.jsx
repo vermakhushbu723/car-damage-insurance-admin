@@ -7,7 +7,7 @@ import UserCell from '../../components/ui/UserCell';
 import StatCard from '../../components/ui/StatCard';
 import { COLORS } from '../../constants/theme';
 import { organizationName } from '../../auth/session';
-import { STATES } from '../../data/roles';
+import { StateSelect, CityInput } from '../../components/ui/LocationFields';
 import { useCollection, useLogChange, newId } from '../../store/AdminStore';
 import { formatDate, matchesQuery } from '../../utils/format';
 
@@ -47,11 +47,11 @@ const BranchModal = ({ open, branch, onClose, onSave, existingNames, organizatio
                     <Form.Item name="class" label="Class" rules={[{ required: true, message: 'Select class' }]}>
                         <Select placeholder="Select Class" options={toOptions(CLASSES)} />
                     </Form.Item>
-                    <Form.Item name="city" label="City" rules={[{ required: true, message: 'Enter city' }]}>
-                        <Input placeholder="e.g. Surat" />
-                    </Form.Item>
                     <Form.Item name="state" label="State" rules={[{ required: true, message: 'Select state' }]}>
-                        <Select placeholder="Select State" options={toOptions(STATES)} showSearch />
+                        <StateSelect cityName="city" />
+                    </Form.Item>
+                    <Form.Item name="city" label="City" rules={[{ required: true, message: 'Enter city' }]}>
+                        <CityInput stateName="state" placeholder="Select or type city" />
                     </Form.Item>
                     <Form.Item name="contact" label="Contact Number" rules={[{ required: true, message: 'Enter contact number' }, { pattern: /^(\+91[\s-]?)?[6-9]\d{9}$/, message: 'Enter a valid mobile number' }]}>
                         <Input placeholder="+91 9876543210" />

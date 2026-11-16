@@ -1,3 +1,4 @@
+import { INDIA_STATES, REGION_OF_STATE } from './indiaLocations';
 // Permission modules and the role-specific fields of the Create Users form.
 // The roles themselves (and their permission matrices) come from
 // admin-service (GET /roles); new ones added with "Add Role" show up everywhere.
@@ -40,20 +41,14 @@ export const PLATFORMS = [
     { key: 'both', label: 'Both' },
 ];
 
-export const STATES = [
-    'Andhra Pradesh', 'Bihar', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Karnataka', 'Kerala',
-    'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana',
-    'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-];
+/** Every State / UT (data/indiaLocations.js). */
+export const STATES = INDIA_STATES;
 
 // Zone -> states, used to narrow the geography State/Region dropdowns.
-export const ZONE_STATES = {
-    North: ['Delhi', 'Haryana', 'Punjab', 'Rajasthan', 'Uttar Pradesh', 'Uttarakhand'],
-    South: ['Andhra Pradesh', 'Karnataka', 'Kerala', 'Tamil Nadu', 'Telangana'],
-    East: ['Bihar', 'Odisha', 'West Bengal'],
-    West: ['Goa', 'Gujarat', 'Maharashtra'],
-    Central: ['Chhattisgarh', 'Madhya Pradesh'],
-};
+export const ZONE_STATES = ['North', 'South', 'East', 'West', 'Central'].reduce((acc, zone) => ({
+    ...acc,
+    [zone]: INDIA_STATES.filter((s) => REGION_OF_STATE[s] === zone),
+}), {});
 
 // Role-specific extra field options
 export const SHIFTS = ['Morning (06:00 - 14:00)', 'General (09:00 - 18:00)', 'Evening (14:00 - 22:00)', 'Night (22:00 - 06:00)'];

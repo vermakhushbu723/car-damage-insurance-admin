@@ -15,6 +15,7 @@ import { useCollection, useLogChange, useRoles } from '../../store/AdminStore';
 import { organizationName } from '../../auth/session';
 import { api } from '../../api/client';
 import { generatePassword } from '../../utils/format';
+import { StateSelect, CityInput, pinNormalize } from '../../components/ui/LocationFields';
 
 const MOBILE_RE = /^(\+91[\s-]?)?[6-9]\d{9}$/;
 const PIN_RE = /^\d{6}$/;
@@ -421,11 +422,11 @@ const CreateUserPage = () => {
                             <Form.Item label="Role level (AG)">
                                 <Input readOnly value={role ? `L${role.level} - ${role.name}` : ''} placeholder={ROLE_LEVEL_HINT} />
                             </Form.Item>
-                            <Form.Item name="city" label="City" rules={req('Enter city')}>
-                                <Input placeholder="Eg. Mumbai" />
-                            </Form.Item>
                             <Form.Item name="state" label="State" rules={req('Select state')}>
-                                <Select placeholder="Select State" options={toOptions(STATES)} showSearch />
+                                <StateSelect cityName="city" />
+                            </Form.Item>
+                            <Form.Item name="city" label="City" rules={req('Enter city')}>
+                                <CityInput stateName="state" placeholder="Select or type city" />
                             </Form.Item>
                             <Form.Item name="region" label="Region" rules={req('Enter region')}>
                                 <Input placeholder="Eg. West Region" />
@@ -433,8 +434,8 @@ const CreateUserPage = () => {
                             <Form.Item name="country" label="Country" rules={req('Select country')}>
                                 <Select placeholder="Select Country" options={toOptions(COUNTRIES)} />
                             </Form.Item>
-                            <Form.Item name="pinCode" label="Pin Code" rules={[...req('Enter pin code'), { pattern: PIN_RE, message: 'Enter a 6-digit pin code' }]}>
-                                <Input placeholder="400001" maxLength={6} />
+                            <Form.Item name="pinCode" label="Pin Code" normalize={pinNormalize} rules={[...req('Enter pin code'), { pattern: PIN_RE, message: 'Enter a 6-digit pin code' }]}>
+                                <Input placeholder="Enter 6-digit pin code" maxLength={6} inputMode="numeric" />
                             </Form.Item>
                             <Form.Item name="profileImage" label="Upload Profile Image" rules={req('Upload a profile image')}>
                                 <ImageUpload />
@@ -450,11 +451,17 @@ const CreateUserPage = () => {
                             <Form.Item name="geoRegion" label="Region">
                                 <Select placeholder="Select State" options={toOptions(zoneStates)} allowClear showSearch />
                             </Form.Item>
-                            <Form.Item name="geoCity" label={accountType === 'Internal' ? 'City / District / Branch Office' : 'City / District'}>
-                                <Input placeholder="Eg. Mumbai" />
-                            </Form.Item>
                             <Form.Item name="geoState" label="State">
-                                <Select placeholder="Select State" options={toOptions(zoneStates)} allowClear showSearch />
+                                <Select
+                                    placeholder="Select State"
+                                    options={toOptions(zoneStates)}
+                                    allowClear
+                                    showSearch
+                                    onChange={(v) => { if (v !== form.getFieldValue('geoState')) form.setFieldValue('geoCity', undefined); }}
+                                />
+                            </Form.Item>
+                            <Form.Item name="geoCity" label={accountType === 'Internal' ? 'City / District / Branch Office' : 'City / District'}>
+                                <CityInput stateName="geoState" placeholder="Select or type city" />
                             </Form.Item>
                         </Grid>
                     </Section>
@@ -530,11 +537,11 @@ const CreateUserPage = () => {
                                 )}
                                 {extra === 'claim-handler' && (
                                     <>
-                                        <Form.Item name={['extra', 'city']} label="City" rules={req('Enter city')}>
-                                            <Input placeholder="Enter City Name" />
-                                        </Form.Item>
                                         <Form.Item name={['extra', 'state']} label="State" rules={req('Select state')}>
-                                            <Select placeholder="Select State" options={toOptions(STATES)} showSearch />
+                                            <StateSelect cityName={['extra', 'city']} />
+                                        </Form.Item>
+                                        <Form.Item name={['extra', 'city']} label="City" rules={req('Enter city')}>
+                                            <CityInput stateName={['extra', 'state']} placeholder="Select or type city" />
                                         </Form.Item>
                                         <Form.Item name={['extra', 'branchId']} label="Assigned Branch" rules={req('Select branch')}>
                                             <Select

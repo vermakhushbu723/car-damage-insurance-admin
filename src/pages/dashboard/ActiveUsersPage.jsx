@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Select, Switch } from 'antd';
-import { BankOutlined, FileDoneOutlined, FileTextOutlined, FileProtectOutlined, WalletOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { Input, Select, Switch, Table, Tag } from 'antd';
+import { BankOutlined, FileDoneOutlined, FileTextOutlined, FileProtectOutlined, WalletOutlined, ArrowRightOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList, Cell, Tooltip } from 'recharts';
 import ModuleCards from '../../components/dashboard/ModuleCards';
 import useDashboardStats from '../../components/dashboard/useDashboardStats';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
-import { useLogChange, useStoreValue } from '../../store/AdminStore';
+import { useCollection, useLogChange, useRoles, useStoreValue } from '../../store/AdminStore';
 
 const BAR_COLORS = ['#1463FF', '#0F8A4C', '#7443D4', '#F3961B'];
 const CHART_ROLES = ['national-manager', 'regional-manager', 'state-manager', 'claim-handler'];
@@ -34,6 +35,26 @@ const ActiveUsersPage = () => {
 
     const data = CHART_ROLES.map((k) => stats.roleCounts.find((r) => r.key === k)).filter(Boolean)
         .map((r) => ({ name: r.label.replace('Claim Handlers (CH)', 'Claim Handlers'), value: scope === 'active' ? r.active : r.total }));
+
+    // ---- the people behind the numbers (one line per user) ----
+    const { items: users } = useCollection('users');
+    const roles = useRoles();
+    const [q, setQ] = useState('');
+    const [roleFilter, setRoleFilter] = useState('All');
+    const roleName = (k) => roles.byKey[k]?.name ?? k;
+    const userRows = useMemo(() => {
+        const text = q.trim().toLowerCase();
+        return users
+            .filter((u) => scope === 'all' || u.status === 'Active')
+            .filter((u) => roleFilter === 'All' || (u.roleKeys ?? [u.roleKey]).includes(roleFilter))
+            .filter((u) => !text || [u.name, u.userId, u.email, u.contact, u.organization, u.city, u.state, ...(u.roleKeys ?? [u.roleKey]).map(roleName)]
+                .some((v) => String(v ?? '').toLowerCase().includes(text)))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [users, scope, roleFilter, q, roles]); // eslint-disable-line react-hooks/exhaustive-deps
+    const roleOptions = useMemo(() => {
+        const keys = [...new Set(users.flatMap((u) => u.roleKeys ?? [u.roleKey]))].filter(Boolean);
+        return [{ value: 'All', label: 'Role All' }, ...keys.map((k) => ({ value: k, label: roleName(k) })).sort((a, b) => a.label.localeCompare(b.label))];
+    }, [users, roles]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const journey = config.journey;
     const enabled = journey.enabled[journey.mode];
@@ -124,6 +145,50 @@ const ActiveUsersPage = () => {
                     </Box>
                 </div>
             </div>
+
+            <Box className="p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <h3 className="text-[14px] font-semibold m-0">
+                        {scope === 'active' ? 'Active Users' : 'All Users'} <span className="font-normal text-[12px]" style={{ color: COLORS.textMuted }}>({userRows.length})</span>
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Input allowClear prefix={<SearchOutlined />} placeholder="Search name, ID, email, mobile, city" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 260 }} />
+                        <Select value={roleFilter} onChange={setRoleFilter} options={roleOptions} style={{ width: 190 }} showSearch optionFilterProp="label" />
+                    </div>
+                </div>
+                <Table
+                    size="small"
+                    rowKey="id"
+                    dataSource={userRows}
+                    pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
+                    scroll={{ x: 1000 }}
+                    locale={{ emptyText: scope === 'active' ? 'No active users yet.' : 'No users yet.' }}
+                    columns={[
+                        { title: 'Name', dataIndex: 'name', render: (n, u) => <span><span className="font-medium">{n}</span><span className="block text-[11px]" style={{ color: COLORS.textMuted }}>{u.userId}</span></span> },
+                        {
+                            title: 'Roles',
+                            key: 'roles',
+                            render: (_, u) => (u.roleKeys ?? [u.roleKey]).map((k, i) => <Tag key={k} color={i === 0 ? 'blue' : undefined} className="!mb-1">{roleName(k)}</Tag>),
+                        },
+                        { title: 'Email', dataIndex: 'email' },
+                        { title: 'Mobile', dataIndex: 'contact', render: (v) => v || '—' },
+                        { title: 'Location', key: 'loc', render: (_, u) => [u.city, u.state].filter(Boolean).join(', ') || '—' },
+                        { title: 'Organization', dataIndex: 'organization', render: (v) => v || '—' },
+                        { title: 'Status', dataIndex: 'status', render: (s) => <Tag color={s === 'Active' ? 'green' : s === 'Suspended' ? 'red' : 'orange'}>{s}</Tag> },
+                        { title: 'Last Login', dataIndex: 'lastLoginAt', render: (v) => (v ? dayjs(v).format('DD MMM YYYY, hh:mm A') : 'Never') },
+                        {
+                            title: '',
+                            key: 'edit',
+                            width: 50,
+                            render: (_, u) => (
+                                <button type="button" aria-label={`Edit ${u.name}`} onClick={() => navigate(`${ROUTES.CREATE_USERS}?edit=${encodeURIComponent(u.id)}`)} style={{ color: '#1677FF' }}>
+                                    <EditOutlined />
+                                </button>
+                            ),
+                        },
+                    ]}
+                />
+            </Box>
         </div>
     );
 };

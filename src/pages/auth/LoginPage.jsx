@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Input, Button, App } from 'antd';
 import { MailOutlined, LockOutlined, ReloadOutlined, CarOutlined, FireOutlined, SettingOutlined, EllipsisOutlined } from '@ant-design/icons';
 import loginImage from '../../assets/images/loginHero.jpg';
-import ibimaLogo from '../../assets/images/ibimaLogo.svg';
+import ibimaLogo from '../../assets/images/ibimaLogo.png';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';
 import { login, getSession } from '../../auth/session';
@@ -149,12 +149,9 @@ const LoginPage = () => {
 
             <div className="w-full lg:w-1/2 flex items-center justify-center px-5 py-4 overflow-y-auto">
                 <div className="w-full max-w-[380px]">
-                    {/* Twin-logo lockup */}
+                    {/* The website logo */}
                     <div className="flex justify-center mb-4">
-                        <div className="inline-flex rounded-md overflow-hidden" style={{ border: '2px solid #1E2A5A' }}>
-                            <img src={ibimaLogo} alt="IBima Assist" className="block" style={{ height: 44, borderRight: '2px solid #1E2A5A' }} />
-                            <img src={ibimaLogo} alt="" aria-hidden="true" className="block" style={{ height: 44 }} />
-                        </div>
+                        <img src={ibimaLogo} alt="IBima Assist" className="block" style={{ height: 56 }} />
                     </div>
 
                     <h1 className="text-lg font-bold m-0" style={{ color: COLORS.textPrimary }}>Welcome back</h1>

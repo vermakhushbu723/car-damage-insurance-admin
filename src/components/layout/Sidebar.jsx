@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip, Dropdown, Avatar } from 'antd';
 import { DownOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
-import ibimaLogo from '../../assets/images/ibimaLogo.svg';
+import ibimaLogo from '../../assets/images/ibimaLogo.png';
 import { SIDEBAR_GROUPS, isNavItemActive } from '../../constants/navigation';
 import { COLORS } from '../../constants/theme';
 import { ROUTES } from '../../constants/routes';

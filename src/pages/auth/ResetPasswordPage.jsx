@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Form, Input, Button, Alert, Spin } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
-import ibimaLogo from '../../assets/images/ibimaLogo.svg';
+import ibimaLogo from '../../assets/images/ibimaLogo.png';
 import { api } from '../../api/client';
 import { COLORS } from '../../constants/theme';
 import { formatDateTime } from '../../utils/format';
